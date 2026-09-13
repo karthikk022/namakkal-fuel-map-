@@ -100,8 +100,12 @@ function setupCompass(){
 function applyRotation(deg){
   const c=document.getElementById('compass');
   if(c) c.style.transform=`rotate(${deg}deg)`;
+  // Rotate tile pane (works for both raster and vector tile layers)
   const tilePane=document.querySelector('.leaflet-tile-pane');
   if(tilePane) tilePane.style.transform=`rotate(${deg}deg)`;
+  // Rotate MapLibre GL canvas if present
+  const glCanvas=document.querySelector('.maplibregl-canvas');
+  if(glCanvas) glCanvas.style.transform=`rotate(${deg}deg)`;
 }
 function fitAll(){
   if(!stations.length||!map) return;
