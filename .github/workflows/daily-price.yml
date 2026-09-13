@@ -1,0 +1,25 @@
+name: daily-price
+
+on:
+  schedule:
+    - cron: '35 0 * * *' # 06:05 IST = 00:35 UTC daily
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Update prices
+        run: python update-prices.py
+      - name: Commit if changed
+        run: |
+          git config user.name "namakkal-bot"
+          git config user.email "bot@namakkal.local"
+          git add prices.json price-history.json
+          if git diff --staged --quiet; then echo "no change"; else git commit -m "daily price $(date +%F)"; git push; fi

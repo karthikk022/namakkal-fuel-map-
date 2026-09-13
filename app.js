@@ -1,0 +1,320 @@
+let stations=[], prices={petrol_ltr:108.7,diesel_ltr:93.06,cng_kg:89.5,date:'2026-09-12'};
+let filter='all', availOnly=false, truckMode=false, map, markers=[];
+let availability={}, waitData={}, cngSubs=[], priceSubs=[];
+try { availability=JSON.parse(localStorage.getItem('nk_avail')||'{}'); }catch(e){}
+try { waitData=JSON.parse(localStorage.getItem('nk_wait')||'{}'); }catch(e){}
+try { cngSubs=JSON.parse(localStorage.getItem('nk_cng_sub')||'[]'); }catch(e){}
+try { priceSubs=JSON.parse(localStorage.getItem('nk_price_sub')||'[]'); }catch(e){}
+let current=null, sb=null, liveMode=false, searchQ='', svcFilter=new Set();
+
+function initSupabase(){
+  try{
+    if(window.SUPABASE_URL && window.SUPABASE_KEY && window.supabase){
+      sb=window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+      liveMode=true;
+      // live updates
+      sb.channel('fuel-live')
+        .on('postgres_changes',{event:'*',schema:'public',table:'availability'},()=>pullCloud())
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'wait_reports'},()=>pullCloud())
+        .subscribe();
+      pullCloud();
+      console.log('Supabase live ON');
+    } else console.log('Supabase not configured - local mode');
+  }catch(e){ console.log('sb fail',e); }
+  // update pill
+  try{ const lp=document.getElementById('livePill'); if(lp&&liveMode){ lp.textContent='🟢 Live'; lp.style.background='#16A34A'; } }catch(e){}
+}
+async function pullCloud(){
+  if(!sb) return;
+  try{
+    const {data}=await sb.from('availability').select('*');
+    if(data){ data.forEach(r=>{ availability[r.station_id+':'+r.fuel]=r.status; }); render(); if(current) openModal(current); }
+    const {data:w}=await sb.from('wait_reports').select('*').order('created_at',{ascending:false}).limit(200);
+    if(w){ const agg={}; w.forEach(r=>{ if(!agg[r.station_id]) agg[r.station_id]={level:r.level,time:new Date(r.created_at).getTime(),count:1}; else agg[r.station_id].count++; }); Object.assign(waitData,agg); render(); }
+  }catch(e){ console.log('pull fail',e); }
+}
+async function pushAvail(station_id,fuel,status){
+  availability[station_id+':'+fuel]=status;
+  try{localStorage.setItem('nk_avail',JSON.stringify(availability));}catch(e){}
+  if(!sb) return;
+  try{ await sb.from('availability').upsert({station_id,fuel,status}); }catch(e){}
+}
+async function pushWait(station_id,level){
+  const old=waitFor(station_id);
+  waitData[station_id]={level,time:Date.now(),count:(old.count||0)+1};
+  try{localStorage.setItem('nk_wait',JSON.stringify(waitData));}catch(e){}
+  if(!sb) return;
+  try{ await sb.from('wait_reports').insert({station_id,level}); }catch(e){}
+}
+
+async function load(){
+  const v='?v='+Date.now();
+  try{ stations=await fetch('stations.json'+v,{cache:'no-store'}).then(r=>r.json()); }catch(e){}
+  try{ const p=await fetch('prices.json'+v,{cache:'no-store'}).then(r=>r.json()); prices={...prices,...p}; }catch(e){}
+  try{ sosData=await fetch('sos.json'+v,{cache:'no-store'}).then(r=>r.json()); }catch(e){}
+  document.getElementById('priceBar').innerHTML=`<span class="price-pill">📍 Namakkal ${prices.date}</span><span class="price-pill petrol">Petrol ₹${prices.petrol_ltr}</span><span class="price-pill diesel">Diesel ₹${prices.diesel_ltr}</span><span class="price-pill cng">CNG ₹${prices.cng_kg}</span><span class="price-pill" id="livePill">📴 Local</span><span class="price-pill" id="dropPill" style="cursor:pointer" title="price drop alert">🔔 Price alert</span>`;
+  initMap(); render(); bindUI(); checkCngAlerts(); initSupabase(); checkPriceDrop(); fitAll();
+}
+function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
+function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
+function initMap(){
+  if(map){ map.remove(); markers=[]; }
+  map=L.map('map').setView([11.24,78.14],10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+}
+function fitAll(){
+  if(!stations.length||!map) return;
+  try{ map.fitBounds(stations.map(s=>[s.lat,s.lon]),{padding:[20,20]}); }catch(e){}
+}
+// --- 1. TRUCKER MODE ---
+function isTruckStop(s){ return s.has_diesel && (s.truck_parking||s.adblue); }
+function truckBadges(s){
+  let h='';
+  if(s.truck_parking) h+=`<span class="badge Available">🅿 Truck parking</span>`;
+  if(s.adblue) h+=`<span class="badge Available">AdBlue</span>`;
+  if(s.upi) h+=`<span class="badge Available">UPI</span>`;
+  return h;
+}
+function popupHTML(s){
+  const rows=[];
+  if(s.has_ev) rows.push(`⚡ EV: <b>${s.ev_kw||''}</b> - ${statusFor(s.id,'ev')} <small>${s.connectors||''}</small>`);
+  if(!truckMode||s.has_diesel){
+    if(s.has_petrol&&!truckMode) rows.push(`Petrol: <b>Rs.${prices.petrol_ltr}</b> - ${statusFor(s.id,'petrol')}${s.has_e20?' <small>E20</small>':''}`);
+    if(s.has_diesel) rows.push(`Diesel: <b>Rs.${prices.diesel_ltr}</b> - ${statusFor(s.id,'diesel')}`);
+    if(s.has_cng&&!truckMode) rows.push(`CNG: <b>Rs.${prices.cng_kg}</b> - ${statusFor(s.id,'cng')}`);
+  }
+  const w=waitFor(s.id);
+  rows.push(`Wait: <b>${w.level}</b> (${w.count} reports)`);
+  if(truckMode) rows.push(truckBadges(s));
+  return `<b>${s.name}</b><br/><small>${s.address}</small><br/>${rows.join('<br/>')}<br/><button class="pop-btn" onclick="window.openStation('${s.id}')">View / Update</button>`;
+}
+function render(){
+  markers.forEach(m=>{try{map.removeLayer(m);}catch(e){}}); markers=[];
+  const list=document.getElementById('list'); list.innerHTML='';
+  let shown=0;
+  stations.forEach(s=>{
+    if(searchQ){
+      const q=(s.name+' '+s.address+' '+(s.brand||'')).toLowerCase();
+      if(!q.includes(searchQ)) return;
+    }
+    if(svcFilter.size){
+      const sv=s.services||{};
+      for(const f of svcFilter){ if(!sv[f]) return; }
+    }
+    if(truckMode && !isTruckStop(s) && !s.has_ev) return;
+    if(!truckMode){
+      if(filter==='petrol'&&!s.has_petrol) return;
+      if(filter==='diesel'&&!s.has_diesel) return;
+      if(filter==='cng'&&!s.has_cng) return;
+      if(filter==='ev'&&!s.has_ev) return;
+    }
+    const st={petrol:s.has_petrol?statusFor(s.id,'petrol'):null,diesel:s.has_diesel?statusFor(s.id,'diesel'):null,cng:s.has_cng?statusFor(s.id,'cng'):null,ev:s.has_ev?statusFor(s.id,'ev'):null};
+    if(availOnly&&!Object.values(st).includes('Available')) return;
+    shown++;
+    const isNear=nearIds.includes(s.id);
+    const dTxt=(userPos&&s._d!=null)?` • ${s._d.toFixed(1)} km`:'';
+    const color=Object.values(st).includes('Out')?'red':waitFor(s.id).level==='Long'?'orange':Object.values(st).includes('Low')?'orange':'green';
+    const mk=L.circleMarker([s.lat,s.lon],{radius:isNear?14:(truckMode?12:10),color,fillOpacity:0.9,weight:isNear?4:2}).addTo(map);
+    mk.bindPopup((isNear?'⭐ Nearest<br/>':'')+popupHTML(s)+(dTxt?`<br/><small>${dTxt} away</small>`:'')); markers.push(mk);
+    const w=waitFor(s.id);
+    const div=document.createElement('div'); div.className='stn'; if(isNear) div.style.borderColor='#2563EB';
+    div.innerHTML=`<h3>${isNear?'⭐ ':''}${s.name} ${truckMode?'🚛':''}</h3><small>${s.address} • ${s.brand}${dTxt}</small><br/>
+    ${(!truckMode&&s.has_petrol)?`<span class="badge ${st.petrol}">Petrol ${st.petrol} • Rs.${prices.petrol_ltr}${s.has_e20?' • E20':''}</span>`:''}
+    ${s.has_diesel?`<span class="badge ${st.diesel}">Diesel ${st.diesel} • Rs.${prices.diesel_ltr}</span>`:''}
+    ${(!truckMode&&s.has_cng)?`<span class="badge ${st.cng}">CNG ${st.cng} • Rs.${prices.cng_kg}</span>`:''}
+    ${s.has_ev?`<span class="badge ${st.ev}">⚡ EV ${st.ev} • ${s.ev_kw||''}</span>`:''}
+    <span class="badge ${w.level==='No rush'?'Available':w.level==='Medium'?'Low':'Out'}">⏱ ${w.level}</span>${svcLine(s)}<br/>${truckMode?truckBadges(s)+'<br/>':''}<br/>
+    <button>View / Update</button>`;
+    div.querySelector('button').addEventListener('click',()=>openModal(s));
+    list.appendChild(div);
+  });
+  document.getElementById('count').textContent=`(${shown})${truckMode?' 🚛 Trucker':''}`;
+  if(!shown){
+    list.innerHTML=`<div class="stn"><h3>No bunks found</h3><small>Try different search or clear filters.</small><br/><br/><button id="clearF">Clear search + filters</button></div>`;
+    document.getElementById('clearF').onclick=()=>{searchQ='';svcFilter.clear();filter='all';truckMode=false;availOnly=false;const se=document.getElementById('search');if(se)se.value='';document.querySelectorAll('[data-svc]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f==='all'));render();};
+  }
+}
+// --- 2. WAIT-TIME + 3. CNG ALERT in modal ---
+function openModal(s){
+  if(typeof s==='string') s=stations.find(x=>x.id===s);
+  if(!s) return; current=s;
+  document.getElementById('mName').textContent=s.name+(truckMode?' 🚛':'');
+  document.getElementById('mAddr').textContent=s.address+' • '+s.brand;
+  let html='';
+  if(s.has_ev) html+=`⚡ EV ${s.ev_kw||''} (${s.connectors||''}) - <b>${statusFor(s.id,'ev')}</b><br/>`;
+  if(!truckMode&&s.has_petrol) html+=`Petrol: Rs.${prices.petrol_ltr}/L - <b>${statusFor(s.id,'petrol')}</b>${s.has_e20?' (E20)':''}<br/>`;
+  if(s.has_diesel) html+=`Diesel: Rs.${prices.diesel_ltr}/L - <b>${statusFor(s.id,'diesel')}</b><br/>`;
+  if(!truckMode&&s.has_cng) html+=`CNG: Rs.${prices.cng_kg}/kg - <b>${statusFor(s.id,'cng')}</b><br/>`;
+  if(truckMode) html+=`${s.truck_parking?'✅ Truck parking<br/>':'❌ No truck parking<br/>'}${s.adblue?'✅ AdBlue available<br/>':'❌ No AdBlue<br/>'}${s.upi?'✅ UPI accepted<br/>':''}`;
+  { const sv=s.services||{}; const parts=[]; if(sv.food)parts.push('🍲 Food'); if(sv.restroom)parts.push('🚻 Restroom'); if(sv.air)parts.push('💨 Air'); if(sv.mechanic)parts.push('🔧 Mechanic'); if(parts.length) html+=parts.join(' • ')+'<br/>'; }
+  // nearest SOS within 3km - direct, no extra click
+  html+=nearbySOSHtml(s,3);
+  document.getElementById('mPrices').innerHTML=html;
+  // wait-time UI
+  const w=waitFor(s.id);
+  document.getElementById('mWait').innerHTML=`<b>Wait time: ${w.level}</b> (${w.count} reports)<br/>
+    <button onclick="window.setWait('No rush')">No rush</button>
+    <button onclick="window.setWait('Medium')">Medium</button>
+    <button onclick="window.setWait('Long')">Long 15m+</button>`;
+  // cng alert UI
+  const mc=document.getElementById('mCngAlert');
+  if(s.has_cng){
+    const sub=cngSubs.includes(s.id);
+    const cst=statusFor(s.id,'cng');
+    const pred=cst!=='Available'?'⚠ High demand - 5 CNG points in Namakkal!':'✅ CNG flowing now';
+    mc.innerHTML=`${pred}<br/><button onclick="window.toggleCngSub()">${sub?'Unsubscribe CNG alert':'🔔 Notify when CNG available'}</button>`;
+  } else mc.innerHTML=`<small>No CNG here. Filter CNG to find bunks.</small>`;
+  document.getElementById('modal').classList.remove('hidden');
+}
+window.openStation=openModal;
+window.openSOS=showSOS;
+window.setWait=function(level){
+  if(!current) return;
+  pushWait(current.id,level).then(()=>{ render(); openModal(current); markers.forEach(m=>{if(m.isPopupOpen()) m.setPopupContent(popupHTML(current));}); });
+};
+window.toggleCngSub=function(){
+  if(!current) return;
+  if(cngSubs.includes(current.id)) cngSubs=cngSubs.filter(x=>x!==current.id);
+  else { cngSubs.push(current.id); if(Notification&&Notification.permission==='default') Notification.requestPermission(); }
+  try{localStorage.setItem('nk_cng_sub',JSON.stringify(cngSubs));}catch(e){}
+  openModal(current);
+};
+function checkCngAlerts(){
+  // if subscribed CNG became Available, alert
+  cngSubs.forEach(id=>{
+    const s=stations.find(x=>x.id===id);
+    if(s&&statusFor(id,'cng')==='Available'){
+      const msg=`CNG available at ${s.name}!`;
+      document.getElementById('priceBar').innerHTML+=` <span class="price-pill" style="background:#22C55E">🔔 ${msg}</span>`;
+      try{ if(Notification&&Notification.permission==='granted') new Notification(msg); }catch(e){}
+    }
+  });
+}
+function svcLine(s){
+  const sv=s.services||{}; let h='';
+  if(sv.food) h+=`<span class="badge Available">🍲 Food</span>`;
+  if(sv.restroom) h+=`<span class="badge Available">🚻 Restroom</span>`;
+  if(sv.air) h+=`<span class="badge Available">💨 Air</span>`;
+  if(sv.mechanic) h+=`<span class="badge Available">🔧 Mechanic</span>`;
+  return h?'<br/>'+h:'';
+}
+async function checkPriceDrop(){
+  try{
+    const h=await fetch('price-history.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json());
+    if(h.length<2) return;
+    const y=h[h.length-2], t=h[h.length-1];
+    const dp=(t.petrol-y.petrol).toFixed(2), dd=(t.diesel-y.diesel).toFixed(2);
+    const pill=document.getElementById('dropPill');
+    if(!pill) return;
+    if(parseFloat(dp)<0||parseFloat(dd)<0){
+      pill.textContent=`📉 Petrol ${dp} Diesel ${dd} - tap to alert`;
+      pill.style.background='#16A34A';
+      if(priceSubs.includes('drop')&&Notification&&Notification.permission==='granted') try{new Notification(`Fuel drop: petrol ${dp}, diesel ${dd}`);}catch(e){}
+    } else pill.textContent='🔔 Price alert (no drop)';
+    pill.onclick=()=>{
+      if(Notification&&Notification.permission==='default') Notification.requestPermission();
+      if(priceSubs.includes('drop')){ priceSubs=[]; pill.textContent='🔔 Price alert off'; }
+      else{ priceSubs=['drop']; pill.textContent='🔔 Drop alerts ON'; alert('You will be notified on price drop (this device).'); }
+      try{localStorage.setItem('nk_price_sub',JSON.stringify(priceSubs));}catch(e){}
+    };
+  }catch(e){}
+}
+function bindUI(){
+  document.querySelectorAll('.filters button[data-f]').forEach(b=>{
+    b.onclick=()=>{document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.f;truckMode=false;document.getElementById('truckMode').classList.remove('active');render();};
+  });
+  document.getElementById('truckMode').onclick=(e)=>{truckMode=!truckMode;e.target.classList.toggle('active');render();};
+  document.getElementById('availOnly').onclick=(e)=>{availOnly=!availOnly;e.target.classList.toggle('active');render();};
+  document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.add('hidden');
+  document.getElementById('modal').addEventListener('click',(e)=>{if(e.target.id==='modal') e.target.classList.add('hidden');});
+  document.getElementById('mSave').onclick=()=>{
+    if(!current) return;
+    const f=document.getElementById('mFuel').value,st=document.getElementById('mStatus').value;
+    pushAvail(current.id,f,st).then(()=>{ render(); openModal(current); checkCngAlerts(); markers.forEach(m=>{if(m.isPopupOpen()) m.setPopupContent(popupHTML(current));}); const lp=document.getElementById('livePill'); if(lp&&liveMode) lp.textContent='🟢 Live'; });
+  };
+  document.getElementById('mDir').onclick=()=>{if(current) window.open(`https://www.google.com/maps/dir/?api=1&destination=${current.lat},${current.lon}`,'_blank');};
+  // trend only (trip removed - will add later if needed)
+  document.getElementById('trendBtn').onclick=showTrend;
+  document.getElementById('trendClose').onclick=()=>document.getElementById('trendModal').classList.add('hidden');
+  document.getElementById('nearBtn').onclick=findNearest;
+  document.getElementById('sosBtn').onclick=showSOS;
+  document.getElementById('sosClose').onclick=()=>document.getElementById('sosModal').classList.add('hidden');
+  document.querySelectorAll('[data-sos]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-sos]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderSOS(b.dataset.sos);});
+  const se=document.getElementById('search');
+  if(se) se.oninput=(e)=>{searchQ=e.target.value.trim().toLowerCase();render();};
+  document.querySelectorAll('[data-svc]').forEach(b=>b.onclick=()=>{const k=b.dataset.svc;if(svcFilter.has(k)){svcFilter.delete(k);b.classList.remove('active');}else{svcFilter.add(k);b.classList.add('active');}render();});
+}
+let sosData=[], sosFilter='all';
+function sosCall(x){
+  if(x.phone) return `<a href="tel:${x.phone}">📞 ${x.phone}</a>`;
+  return `<small>number verifying - call 100 / 108</small>`;
+}
+function nearbySOSHtml(s,maxKm){
+  if(!sosData||!sosData.length) return `<small>🆘 <a href="#" onclick="window.openSOS();return false;">SOS</a></small>`;
+  const near=sosData.map(x=>({...x,d:distKm(s.lat,s.lon,x.lat,x.lon)})).filter(x=>x.d<=maxKm).sort((a,b)=>a.d-b.d).slice(0,2);
+  if(!near.length){
+    const one=sosData.map(x=>({...x,d:distKm(s.lat,s.lon,x.lat,x.lon)})).sort((a,b)=>a.d-b.d)[0];
+    if(!one) return '';
+    return `<div style="background:#FEF2F2;border-radius:10px;padding:7px;margin-top:6px">🆘 Nearest help ${one.d.toFixed(1)}km: ${one.name} ${sosCall(one)} • <a href="#" onclick="window.openSOS();return false;">all SOS</a></div>`;
+  }
+  return `<div style="background:#FEF2F2;border-radius:10px;padding:7px;margin-top:6px">🆘 Within ${maxKm}km:<br/>`+near.map(x=>`• ${x.name} ${x.d.toFixed(1)}km ${sosCall(x)}`).join('<br/>')+`<br/><a href="#" onclick="window.openSOS();return false;">all SOS</a></div>`;
+}
+async function showSOS(){
+  document.getElementById('sosModal').classList.remove('hidden');
+  try{ sosData=await fetch('sos.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json()); }catch(e){}
+  renderSOS('all');
+}
+function renderSOS(f){
+  sosFilter=f;
+  const ref=current||(userPos?{lat:userPos.lat,lon:userPos.lon}:{lat:11.2189,lon:78.1671});
+  const list=document.getElementById('sosList'); list.innerHTML='';
+  sosData.filter(s=>f==='all'||s.type===f||(f==='mechanic'&&s.type==='tow')).forEach(s=>{
+    const d=distKm(ref.lat,ref.lon,s.lat,s.lon);
+    const icon=s.type==='hospital'?'🏥':s.type==='mechanic'?'🔧':s.type==='puncture'?'🛞':s.type==='tow'?'🚚':'🚔';
+    const div=document.createElement('div'); div.className='stn';
+    const callBtn=s.phone?`<a href="tel:${s.phone}" style="flex:1;text-align:center;background:#16A34A;color:#fff;padding:9px;border-radius:10px;text-decoration:none;font-weight:800">📞 ${s.phone}</a>`:`<span style="flex:1;background:#FEF3C7;padding:9px;border-radius:10px;font-size:12px">verifying - call 100 / 108</span>`;
+    div.innerHTML=`<h3>${icon} ${s.name}</h3><small>${s.address} • ${d.toFixed(1)} km</small><br/><div class="row">${callBtn}<button data-lat="${s.lat}" data-lon="${s.lon}">Go</button></div>`;
+    div.querySelector('button').onclick=(e)=>{window.open(`https://www.google.com/maps/dir/?api=1&destination=${e.target.dataset.lat},${e.target.dataset.lon}`,'_blank');};
+    list.appendChild(div);
+  });
+  if(!list.children.length) list.innerHTML='<small>No SOS in this category yet.</small>';
+}
+let userPos=null, nearIds=[], userMarker=null;
+function distKm(a,b,c,d){ const R=6371,r=x=>x*Math.PI/180; const h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+function findNearest(){
+  if(!navigator.geolocation){ alert('GPS not supported'); return; }
+  const btn=document.getElementById('nearBtn'); btn.textContent='⌛ Locating...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userPos={lat:pos.coords.latitude,lon:pos.coords.longitude};
+    btn.textContent='📍 Nearest';
+    if(userMarker){ try{map.removeLayer(userMarker);}catch(e){} }
+    userMarker=L.circleMarker([userPos.lat,userPos.lon],{radius:9,color:'#2563EB',fillColor:'#2563EB',fillOpacity:1}).addTo(map).bindPopup('You are here').openPopup();
+    map.setView([userPos.lat,userPos.lon],12);
+    // rankRespecting current filter
+    let pool=stations.filter(s=>{
+      if(filter==='petrol'&&!s.has_petrol) return false;
+      if(filter==='diesel'&&!s.has_diesel) return false;
+      if(filter==='cng'&&!s.has_cng) return false;
+      if(truckMode&&!isTruckStop(s)) return false;
+      return true;
+    });
+    pool.forEach(s=>s._d=distKm(userPos.lat,userPos.lon,s.lat,s.lon));
+    pool.sort((a,b)=>a._d-b._d);
+    nearIds=pool.slice(0,3).map(s=>s.id);
+    render();
+    const top=pool[0];
+    if(top) document.getElementById('count').textContent=`(nearest ${top.name} ${top._d.toFixed(1)} km)`;
+  },err=>{ btn.textContent='📍 Nearest'; alert('GPS blocked - allow location. '+err.message); },{timeout:10000});
+}
+let trendChart=null;
+async function showTrend(){
+  document.getElementById('trendModal').classList.remove('hidden');
+  let h=[];
+  try{ h=await fetch('price-history.json?v='+Date.now(),{cache:'no-store'}).then(r=>r.json()); }catch(e){}
+  const labels=h.map(x=>x.date.slice(5)), pet=h.map(x=>x.petrol), die=h.map(x=>x.diesel);
+  const lo=Math.min(...pet), hi=Math.max(...pet);
+  document.getElementById('trendNote').textContent=`Petrol low Rs.${lo} high Rs.${hi} in 10 days. Diesel now Rs.${prices.diesel_ltr}. Daily 6AM city price.`;
+  if(trendChart) trendChart.destroy();
+  trendChart=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels,datasets:[{label:'Petrol',data:pet,borderColor:'#16a34a',tension:0.3},{label:'Diesel',data:die,borderColor:'#ea580c',tension:0.3}]},options:{plugins:{legend:{display:true}},scales:{y:{ticks:{callback:v=>'₹'+v}}}}});
+}
+load();

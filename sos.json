@@ -1,0 +1,110 @@
+[
+ {
+  "address": "Trichy Road, Namakkal",
+  "id": "sos01",
+  "lat": 11.216,
+  "lon": 78.17,
+  "name": "Govt Hospital Namakkal",
+  "phone": "04286-220001",
+  "type": "hospital"
+ },
+ {
+  "address": "Salem Road, Namakkal",
+  "id": "sos02",
+  "lat": 11.23,
+  "lon": 78.167,
+  "name": "Thangam Hospital",
+  "phone": "04286-221122",
+  "type": "hospital"
+ },
+ {
+  "address": "Rasipuram Main Road",
+  "id": "sos03",
+  "lat": 11.472,
+  "lon": 78.158,
+  "name": "Govt Hospital Rasipuram",
+  "phone": "04287-220100",
+  "type": "hospital"
+ },
+ {
+  "address": "NH-44 Puduchatram",
+  "id": "sos04",
+  "lat": 11.321,
+  "lon": 78.161,
+  "name": "Highway Puncture & Tyre - Puduchatram",
+  "phone": "",
+  "type": "puncture"
+ },
+ {
+  "address": "Trichy Highway Pothanur",
+  "id": "sos05",
+  "lat": 11.171,
+  "lon": 78.231,
+  "name": "24x7 Lorry Mechanic Pothanur",
+  "phone": "",
+  "type": "mechanic"
+ },
+ {
+  "address": "Salem Road Kondichettipatti",
+  "id": "sos06",
+  "lat": 11.286,
+  "lon": 78.156,
+  "name": "Tow & Crane Kondichettipatti",
+  "phone": "",
+  "type": "tow"
+ },
+ {
+  "address": "Erode Road Kokarayanpettai",
+  "id": "sos07",
+  "lat": 11.251,
+  "lon": 78.061,
+  "name": "Puncture Shop Kokarayanpettai",
+  "phone": "",
+  "type": "puncture"
+ },
+ {
+  "address": "Paramathi-Velur",
+  "id": "sos08",
+  "lat": 11.101,
+  "lon": 78.001,
+  "name": "Mechanic Paramathi",
+  "phone": "",
+  "type": "mechanic"
+ },
+ {
+  "address": "Namakkal Town",
+  "id": "sos09",
+  "lat": 11.219,
+  "lon": 78.169,
+  "name": "Police Control Namakkal",
+  "phone": "100",
+  "type": "police"
+ },
+ {
+  "address": "Rasipuram",
+  "id": "sos10",
+  "lat": 11.47,
+  "lon": 78.16,
+  "name": "Police Rasipuram",
+  "phone": "100",
+  "type": "police"
+ },
+ {
+  "address": "Mohanur Road",
+  "id": "sos11",
+  "lat": 11.061,
+  "lon": 78.111,
+  "name": "Clinic Mohanur + Ambulance",
+  "phone": "108",
+  "type": "hospital"
+ },
+ {
+  "address": "Senthamangalam",
+  "id": "sos12",
+  "lat": 11.301,
+  "lon": 78.251,
+  "name": "Tyre & Air Senthamangalam",
+  "phone": "",
+  "type": "puncture"
+ }
+]

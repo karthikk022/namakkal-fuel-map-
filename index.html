@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Namakkal Live Fuel Map - Petrol Diesel CNG</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">⛽</div>
+    <div>
+      <h1>Namakkal <span>Fuel Map</span> 🚛</h1>
+      <div id="priceBar">Loading live prices...</div>
+    </div>
+  </div>
+  <div class="filters">
+    <button data-f="all" class="active">All</button>
+    <button data-f="petrol">Petrol</button>
+    <button data-f="diesel">Diesel</button>
+    <button data-f="cng">CNG</button>
+    <button data-f="ev">⚡ EV</button>
+    <button id="sosBtn" style="background:#E11D48">🆘 SOS</button>
+    <button id="nearBtn">📍 Nearest</button>
+    <button id="truckMode">🚛 Trucker Mode</button>
+    <button id="trendBtn">📈 Trend</button>
+    <button id="availOnly">Available only</button>
+  </div>
+</header>
+<main>
+  <div id="map"></div>
+  <aside id="panel">
+    <h2>Stations <span id="count"></span></h2>
+    <input id="search" placeholder="🔍 Search bunk / road / brand..." style="width:100%;padding:10px;border-radius:12px;border:2px solid #101d4222;margin-bottom:8px" />
+    <div id="serviceFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <button data-svc="food">🍲 Food</button>
+      <button data-svc="restroom">🚻 Restroom</button>
+      <button data-svc="air">💨 Air</button>
+      <button data-svc="mechanic">🔧 Mechanic</button>
+    </div>
+    <div id="list"></div>
+  </aside>
+</main>
+<div id="modal" class="hidden">
+  <div class="card">
+    <h3 id="mName"></h3>
+    <p id="mAddr"></p>
+    <div id="mPrices"></div>
+    <div id="mWait" style="margin:8px 0"></div>
+    <div id="mCngAlert" style="margin:8px 0"></div>
+    <label>Update availability (owner/demo):</label>
+    <select id="mFuel">
+      <option value="petrol">Petrol</option>
+      <option value="diesel">Diesel</option>
+      <option value="cng">CNG</option>
+      <option value="ev">EV</option>
+    </select>
+    <select id="mStatus">
+      <option value="Available">Available</option>
+      <option value="Low">Low</option>
+      <option value="Out">Out of stock</option>
+    </select>
+    <div class="row">
+      <button id="mSave">Save</button>
+      <button id="mDir">Directions</button>
+      <button id="mClose">Close</button>
+    </div>
+    <small id="syncNote">🟢 Live via Supabase — owner updates sync to all.</small>
+  </div>
+</div>
+<div id="trendModal" class="hidden">
+  <div class="card" style="width:420px">
+    <h3>Namakkal 10-day Price Trend</h3>
+    <canvas id="trendChart" height="220"></canvas>
+    <p id="trendNote" style="font-size:12px"></p>
+    <button id="trendClose">Close</button>
+  </div>
+</div>
+<div id="sosModal" class="hidden">
+  <div class="card" style="width:400px">
+    <h3>🆘 Highway SOS - Namakkal</h3>
+    <div style="display:flex;gap:6px;margin:6px 0">
+      <button data-sos="all" class="active">All</button>
+      <button data-sos="hospital">🏥 Hospital</button>
+      <button data-sos="mechanic">🔧 Mechanic</button>
+      <button data-sos="puncture">🛞 Puncture</button>
+      <button data-sos="police">🚔 Police</button>
+    </div>
+    <div id="sosList" style="max-height:300px;overflow:auto"></div>
+    <button id="sosClose">Close</button>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
