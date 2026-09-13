@@ -62,8 +62,16 @@ function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
 function initMap(){
   if(map){ map.remove(); markers=[]; }
-  map=L.map('map').setView([11.24,78.14],10,{rotate:true});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',updateWhenZooming:false,updateWhenIdle:true}).addTo(map);
+  map=L.map('map').setView([11.24,78.14],10);
+  const token=window.MAPBOX_TOKEN||'';
+  if(token){
+    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token='+token,{
+      maxZoom:19,attribution:'© Mapbox © OpenStreetMap',tileSize:512,zoomOffset:-1
+    }).addTo(map);
+    document.getElementById('mapWrap').setAttribute('data-style','mapbox');
+  } else {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  }
   setupCompass();
 }
 function setupCompass(){
