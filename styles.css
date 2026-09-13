@@ -21,8 +21,7 @@ header{background:linear-gradient(120deg,var(--ink) 0%,#1E3A8A 55%,#0D9488 130%)
 main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 152px);gap:12px;padding:12px}
 #mapWrap{position:relative;height:100%;border-radius:20px;border:3px solid var(--ink);box-shadow:0 10px 30px rgba(16,29,66,.25);overflow:hidden}
 #map{height:100%}
-#compass{position:absolute;bottom:20px;right:20px;z-index:1000;width:48px;height:48px;border-radius:50%;background:var(--ink);color:#fff;font-size:24px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:transform .3s}
-#compass:hover{background:var(--petrol);transform:scale(1.1)}
+.leaflet-control-attribution{display:none!important}
 #panel{background:var(--card);border-radius:20px;border:2px solid #101d4215;padding:12px;overflow:auto}
 #panel h2{font-family:"Baloo 2";margin:4px 4px 10px;font-size:20px}
 .stn{border:2px solid #101d4212;border-radius:16px;padding:11px;margin-bottom:11px;background:linear-gradient(180deg,#fff,#FFFBF0);position:relative;overflow:hidden}

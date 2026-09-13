@@ -62,50 +62,12 @@ function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
 function initMap(){
   if(map){ map.remove(); markers=[]; }
-  map=L.map('map').setView([11.24,78.14],10);
+  map=L.map('map',{attributionControl:false}).setView([11.24,78.14],10);
   L.maplibreGL({
     style:'https://tiles.openfreemap.org/styles/liberty',
     maxZoom:19,
     attribution:'<a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
-  setupCompass();
-}
-function setupCompass(){
-  const c=document.getElementById('compass'); if(!c) return;
-  let angle=0, dragging=false, lastY=0;
-  c.style.transform='rotate(0deg)';
-  c.onclick=()=>{
-    if(angle===0){ angle=45; } else if(angle===45){ angle=90; } else if(angle===90){ angle=180; } else { angle=0; }
-    applyRotation(angle);
-  };
-  c.ontouchstart=c.onmousedown=(e)=>{
-    e.preventDefault(); dragging=true;
-    lastY=e.touches?e.touches[0].clientY:e.clientY;
-  };
-  const onMove=(e)=>{
-    if(!dragging) return;
-    const y=e.touches?e.touches[0].clientY:e.clientY;
-    const dx=y-lastY;
-    angle=(angle+dx*0.5)%360;
-    if(angle<0) angle+=360;
-    applyRotation(angle);
-    lastY=y;
-  };
-  const onUp=()=>{ dragging=false; };
-  document.addEventListener('mousemove',onMove);
-  document.addEventListener('mouseup',onUp);
-  document.addEventListener('touchmove',onMove,{passive:false});
-  document.addEventListener('touchend',onUp);
-}
-function applyRotation(deg){
-  const c=document.getElementById('compass');
-  if(c) c.style.transform=`rotate(${deg}deg)`;
-  // Rotate tile pane (works for both raster and vector tile layers)
-  const tilePane=document.querySelector('.leaflet-tile-pane');
-  if(tilePane) tilePane.style.transform=`rotate(${deg}deg)`;
-  // Rotate MapLibre GL canvas if present
-  const glCanvas=document.querySelector('.maplibregl-canvas');
-  if(glCanvas) glCanvas.style.transform=`rotate(${deg}deg)`;
 }
 function fitAll(){
   if(!stations.length||!map) return;
