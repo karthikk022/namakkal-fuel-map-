@@ -19,7 +19,10 @@ header{background:linear-gradient(120deg,var(--ink) 0%,#1E3A8A 55%,#0D9488 130%)
 .filters button.active{background:var(--sun);color:var(--ink);border-color:var(--ink)}
 #truckMode.active{background:#22C55E!important;color:#052e16!important}
 main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 152px);gap:12px;padding:12px}
-#map{height:100%;border-radius:20px;border:3px solid var(--ink);box-shadow:0 10px 30px rgba(16,29,66,.25);overflow:hidden}
+#mapWrap{position:relative;height:100%;border-radius:20px;border:3px solid var(--ink);box-shadow:0 10px 30px rgba(16,29,66,.25);overflow:hidden}
+#map{height:100%}
+#compass{position:absolute;bottom:20px;right:20px;z-index:1000;width:48px;height:48px;border-radius:50%;background:var(--ink);color:#fff;font-size:24px;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.3);transition:transform .3s}
+#compass:hover{background:var(--petrol);transform:scale(1.1)}
 #panel{background:var(--card);border-radius:20px;border:2px solid #101d4215;padding:12px;overflow:auto}
 #panel h2{font-family:"Baloo 2";margin:4px 4px 10px;font-size:20px}
 .stn{border:2px solid #101d4212;border-radius:16px;padding:11px;margin-bottom:11px;background:linear-gradient(180deg,#fff,#FFFBF0);position:relative;overflow:hidden}
@@ -48,4 +51,4 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 152px);gap
 #serviceFilters button.active{background:var(--sun);border-color:var(--ink);color:var(--ink)}
 .stn .badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stn{line-height:1.5}
-@media(max-width:860px){main{grid-template-columns:1fr;height:auto}#map{height:52vh}#panel{max-height:46vh}.brand h1{font-size:19px}header{padding:10px 12px}.filters button{padding:7px 11px;font-size:12px}main{height:auto;padding:8px}}
+@media(max-width:860px){main{grid-template-columns:1fr;height:auto}#mapWrap{height:52vh}#panel{max-height:46vh}.brand h1{font-size:19px}header{padding:10px 12px}.filters button{padding:7px 11px;font-size:12px}main{height:auto;padding:8px}}
