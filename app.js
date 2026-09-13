@@ -260,6 +260,18 @@ function bindUI(){
         fitSelectedRoutes:true,
         routeWhileDragging:false
       }).addTo(map);
+      // Add close button to route instructions
+      setTimeout(()=>{
+        const rc=document.querySelector('.leaflet-routing-container');
+        if(rc){
+          const btn=document.createElement('div');
+          btn.textContent='✕';
+          btn.style.cssText='position:absolute;top:8px;right:10px;font-size:18px;cursor:pointer;color:#101D42;font-weight:bold;z-index:10;line-height:1';
+          btn.onclick=()=>{try{map.removeControl(window.routeCtrl);}catch(e){} window.routeCtrl=null;};
+          rc.style.position='relative';
+          rc.appendChild(btn);
+        }
+      },200);
       map.closePopup();
       document.getElementById('modal').classList.add('hidden');
       map.setView(dest,13);
