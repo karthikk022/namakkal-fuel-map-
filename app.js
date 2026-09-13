@@ -63,8 +63,10 @@ function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),coun
 function initMap(){
   if(map){ map.remove(); markers=[]; }
   map=L.map('map').setView([11.24,78.14],10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    maxZoom:19,attribution:'© OpenStreetMap contributors'
+  L.maplibreGL({
+    style:'https://tiles.openfreemap.org/styles/liberty',
+    maxZoom:19,
+    attribution:'<a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
   setupCompass();
 }
