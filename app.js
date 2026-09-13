@@ -1,10 +1,11 @@
 let stations=[], prices={petrol_ltr:108.7,diesel_ltr:93.06,cng_kg:89.5,date:'2026-09-12'};
 let filter='all', availOnly=false, truckMode=false, map, markers=[];
-let availability={}, waitData={}, cngSubs=[], priceSubs=[];
+let availability={}, waitData={}, cngSubs=[], priceSubs=[], availTime={};
 try { availability=JSON.parse(localStorage.getItem('nk_avail')||'{}'); }catch(e){}
 try { waitData=JSON.parse(localStorage.getItem('nk_wait')||'{}'); }catch(e){}
 try { cngSubs=JSON.parse(localStorage.getItem('nk_cng_sub')||'[]'); }catch(e){}
 try { priceSubs=JSON.parse(localStorage.getItem('nk_price_sub')||'[]'); }catch(e){}
+try { availTime=JSON.parse(localStorage.getItem('nk_avail_t')||'{}'); }catch(e){}
 let current=null, sb=null, liveMode=false, searchQ='', svcFilter=new Set();
 
 function initSupabase(){
@@ -28,14 +29,16 @@ async function pullCloud(){
   if(!sb) return;
   try{
     const {data}=await sb.from('availability').select('*');
-    if(data){ data.forEach(r=>{ availability[r.station_id+':'+r.fuel]=r.status; }); render(); if(current) openModal(current); }
+    if(data){ data.forEach(r=>{ availability[r.station_id+':'+r.fuel]=r.status; if(r.updated_at) availTime[r.station_id+':'+r.fuel]=new Date(r.updated_at).getTime(); }); try{localStorage.setItem('nk_avail_t',JSON.stringify(availTime));}catch(e){} render(); if(current) openModal(current); }
     const {data:w}=await sb.from('wait_reports').select('*').order('created_at',{ascending:false}).limit(200);
     if(w){ const agg={}; w.forEach(r=>{ if(!agg[r.station_id]) agg[r.station_id]={level:r.level,time:new Date(r.created_at).getTime(),count:1}; else agg[r.station_id].count++; }); Object.assign(waitData,agg); render(); }
   }catch(e){ console.log('pull fail',e); }
 }
 async function pushAvail(station_id,fuel,status){
   availability[station_id+':'+fuel]=status;
+  availTime[station_id+':'+fuel]=Date.now();
   try{localStorage.setItem('nk_avail',JSON.stringify(availability));}catch(e){}
+  try{localStorage.setItem('nk_avail_t',JSON.stringify(availTime));}catch(e){}
   if(!sb) return;
   try{ await sb.from('availability').upsert({station_id,fuel,status}); }catch(e){}
 }
@@ -141,13 +144,12 @@ function openModal(s){
   document.getElementById('mName').textContent=s.name+(truckMode?' 🚛':'');
   document.getElementById('mAddr').textContent=s.address+' • '+s.brand;
   let html='';
-  if(s.has_ev) html+=`⚡ EV ${s.ev_kw||''} (${s.connectors||''}) - <b>${statusFor(s.id,'ev')}</b><br/>`;
-  if(!truckMode&&s.has_petrol) html+=`Petrol: Rs.${prices.petrol_ltr}/L - <b>${statusFor(s.id,'petrol')}</b>${s.has_e20?' (E20)':''}<br/>`;
-  if(s.has_diesel) html+=`Diesel: Rs.${prices.diesel_ltr}/L - <b>${statusFor(s.id,'diesel')}</b><br/>`;
-  if(!truckMode&&s.has_cng) html+=`CNG: Rs.${prices.cng_kg}/kg - <b>${statusFor(s.id,'cng')}</b><br/>`;
+  if(s.has_ev) html+=`⚡ EV ${s.ev_kw||''} (${s.connectors||''}) - <b>${statusLine(s.id,'ev')}</b><br/>`;
+  if(!truckMode&&s.has_petrol) html+=`Petrol: Rs.${prices.petrol_ltr}/L - <b>${statusLine(s.id,'petrol')}</b>${s.has_e20?' (E20)':''}<br/>`;
+  if(s.has_diesel) html+=`Diesel: Rs.${prices.diesel_ltr}/L - <b>${statusLine(s.id,'diesel')}</b><br/>`;
+  if(!truckMode&&s.has_cng) html+=`CNG: Rs.${prices.cng_kg}/kg - <b>${statusLine(s.id,'cng')}</b><br/>`;
   if(truckMode) html+=`${s.truck_parking?'✅ Truck parking<br/>':'❌ No truck parking<br/>'}${s.adblue?'✅ AdBlue available<br/>':'❌ No AdBlue<br/>'}${s.upi?'✅ UPI accepted<br/>':''}`;
-  { const sv=s.services||{}; const parts=[]; if(sv.food)parts.push('🍲 Food'); if(sv.restroom)parts.push('🚻 Restroom'); if(sv.air)parts.push('💨 Air'); if(sv.mechanic)parts.push('🔧 Mechanic'); if(parts.length) html+=parts.join(' • ')+'<br/>'; }
-  // nearest SOS within 3km - direct, no extra click
+  html+=svcLine(s)+'<br/>';
   html+=nearbySOSHtml(s,3);
   document.getElementById('mPrices').innerHTML=html;
   // wait-time UI
@@ -189,6 +191,18 @@ function checkCngAlerts(){
       try{ if(Notification&&Notification.permission==='granted') new Notification(msg); }catch(e){}
     }
   });
+}
+function timeAgo(ts){
+  if(!ts) return '';
+  const m=Math.floor((Date.now()-ts)/60000);
+  if(m<1) return 'just now';
+  if(m<60) return m+' min ago';
+  const h=Math.floor(m/60); if(h<24) return h+' hr ago';
+  return Math.floor(h/24)+' day ago';
+}
+function statusLine(id,fuel){
+  const s=statusFor(id,fuel), t=availTime[id+':'+fuel];
+  return s + (t?` <small>(${timeAgo(t)})</small>`:'');
 }
 function svcLine(s){
   const sv=s.services||{}; let h='';
@@ -246,8 +260,8 @@ function bindUI(){
 }
 let sosData=[], sosFilter='all';
 function sosCall(x){
-  if(x.phone) return `<a href="tel:${x.phone}">📞 ${x.phone}</a>`;
-  return `<small>number verifying - call 100 / 108</small>`;
+  if(x.phone) return `<a href="tel:${x.phone}" style="display:inline-block;background:#16A34A;color:#fff;padding:4px 10px;border-radius:100px;text-decoration:none;font-weight:800">📞 ${x.phone}</a>`;
+  return `<small>verifying - call 100 / 108</small>`;
 }
 function nearbySOSHtml(s,maxKm){
   if(!sosData||!sosData.length) return `<small>🆘 <a href="#" onclick="window.openSOS();return false;">SOS</a></small>`;
