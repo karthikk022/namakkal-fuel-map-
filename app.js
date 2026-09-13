@@ -241,7 +241,18 @@ function bindUI(){
     const f=document.getElementById('mFuel').value,st=document.getElementById('mStatus').value;
     pushAvail(current.id,f,st).then(()=>{ render(); openModal(current); checkCngAlerts(); markers.forEach(m=>{if(m.isPopupOpen()) m.setPopupContent(popupHTML(current));}); const lp=document.getElementById('livePill'); if(lp&&liveMode) lp.textContent='🟢 Live'; });
   };
-  document.getElementById('mDir').onclick=()=>{if(current) window.open(`https://www.google.com/maps/dir/?api=1&destination=${current.lat},${current.lon}`,'_blank');};
+  document.getElementById('mDir').onclick=()=>{
+    if(!current) return;
+    if(window.routeCtrl){ try{map.removeControl(window.routeCtrl);}catch(e){} window.routeCtrl=null; }
+    window.routeCtrl=L.Routing.control({
+      waypoints:[L.latLng(current.lat,current.lon)],
+      lineOptions:{styles:[{color:'#16A34A',weight:5}]},
+      createMarker:function(){return null;},
+      show:false,
+      fitSelectedRoutes:true
+    }).addTo(map);
+    map.setView([current.lat,current.lon],13);
+  };
   // trend only (trip removed - will add later if needed)
   document.getElementById('trendBtn').onclick=showTrend;
   document.getElementById('trendClose').onclick=()=>document.getElementById('trendModal').classList.add('hidden');
