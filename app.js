@@ -63,15 +63,9 @@ function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),coun
 function initMap(){
   if(map){ map.remove(); markers=[]; }
   map=L.map('map').setView([11.24,78.14],10);
-  const token=window.MAPBOX_TOKEN||'';
-  if(token){
-    L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}@2x?access_token='+token,{
-      maxZoom:19,attribution:'© Mapbox © OpenStreetMap',tileSize:512,zoomOffset:-1
-    }).addTo(map);
-    document.getElementById('mapWrap').setAttribute('data-style','mapbox');
-  } else {
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-  }
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    maxZoom:19,attribution:'© CartoDB © OpenStreetMap contributors',subdomains:'abcd'
+  }).addTo(map);
   setupCompass();
 }
 function setupCompass(){
