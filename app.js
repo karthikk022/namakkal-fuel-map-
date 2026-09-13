@@ -52,7 +52,7 @@ async function load(){
   try{ stations=await fetch('stations.json'+v,{cache:'no-store'}).then(r=>r.json()); }catch(e){}
   try{ const p=await fetch('prices.json'+v,{cache:'no-store'}).then(r=>r.json()); prices={...prices,...p}; }catch(e){}
   try{ sosData=await fetch('sos.json'+v,{cache:'no-store'}).then(r=>r.json()); }catch(e){}
-  document.getElementById('priceBar').innerHTML=`<span class="price-pill">📍 Namakkal ${prices.date}</span><span class="price-pill petrol">Petrol ₹${prices.petrol_ltr}</span><span class="price-pill diesel">Diesel ₹${prices.diesel_ltr}</span><span class="price-pill cng">CNG ₹${prices.cng_kg}</span><span class="price-pill" id="livePill">📴 Local</span><span class="price-pill" id="dropPill" style="cursor:pointer" title="price drop alert">🔔 Price alert</span>`;
+  document.getElementById('priceBar').innerHTML=`<span class="price-pill petrol">Petrol ₹${prices.petrol_ltr}</span><span class="price-pill diesel">Diesel ₹${prices.diesel_ltr}</span><span class="price-pill cng">CNG ₹${prices.cng_kg}</span><span class="price-pill" id="livePill">📴 Local</span><span class="price-pill" id="dropPill" style="cursor:pointer" title="price drop alert">🔔 Price alert</span>`;
   initMap(); render(); bindUI(); checkCngAlerts(); initSupabase(); checkPriceDrop(); fitAll();
 }
 function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
