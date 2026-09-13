@@ -63,8 +63,8 @@ function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),coun
 function initMap(){
   if(map){ map.remove(); markers=[]; }
   map=L.map('map').setView([11.24,78.14],10);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-    maxZoom:19,attribution:'© CartoDB © OpenStreetMap contributors',subdomains:'abcd'
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,attribution:'© OpenStreetMap contributors'
   }).addTo(map);
   setupCompass();
 }
