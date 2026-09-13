@@ -86,8 +86,6 @@ function popupHTML(s){
     if(s.has_diesel) rows.push(`Diesel: <b>Rs.${prices.diesel_ltr}</b> - ${statusFor(s.id,'diesel')}`);
     if(s.has_cng&&!truckMode) rows.push(`CNG: <b>Rs.${prices.cng_kg}</b> - ${statusFor(s.id,'cng')}`);
   }
-  const w=waitFor(s.id);
-  rows.push(`Wait: <b>${w.level}</b> (${w.count} reports)`);
   if(truckMode) rows.push(truckBadges(s));
   return `<b>${s.name}</b><br/><small>${s.address}</small><br/>${rows.join('<br/>')}<br/><button class="pop-btn" onclick="window.openStation('${s.id}')">View / Update</button>`;
 }
@@ -116,17 +114,16 @@ function render(){
     shown++;
     const isNear=nearIds.includes(s.id);
     const dTxt=(userPos&&s._d!=null)?` • ${s._d.toFixed(1)} km`:'';
-    const color=Object.values(st).includes('Out')?'red':waitFor(s.id).level==='Long'?'orange':Object.values(st).includes('Low')?'orange':'green';
+    const color=Object.values(st).includes('Out')?'red':Object.values(st).includes('Low')?'orange':'green';
     const mk=L.circleMarker([s.lat,s.lon],{radius:isNear?14:(truckMode?12:10),color,fillOpacity:0.9,weight:isNear?4:2}).addTo(map);
     mk.bindPopup((isNear?'⭐ Nearest<br/>':'')+popupHTML(s)+(dTxt?`<br/><small>${dTxt} away</small>`:'')); markers.push(mk);
-    const w=waitFor(s.id);
     const div=document.createElement('div'); div.className='stn'; if(isNear) div.style.borderColor='#2563EB';
     div.innerHTML=`<h3>${isNear?'⭐ ':''}${s.name} ${truckMode?'🚛':''}</h3><small>${s.address} • ${s.brand}${dTxt}</small><br/>
     ${(!truckMode&&s.has_petrol)?`<span class="badge ${st.petrol}">Petrol ${st.petrol} • Rs.${prices.petrol_ltr}${s.has_e20?' • E20':''}</span>`:''}
     ${s.has_diesel?`<span class="badge ${st.diesel}">Diesel ${st.diesel} • Rs.${prices.diesel_ltr}</span>`:''}
     ${(!truckMode&&s.has_cng)?`<span class="badge ${st.cng}">CNG ${st.cng} • Rs.${prices.cng_kg}</span>`:''}
     ${s.has_ev?`<span class="badge ${st.ev}">⚡ EV ${st.ev} • ${s.ev_kw||''}</span>`:''}
-    <span class="badge ${w.level==='No rush'?'Available':w.level==='Medium'?'Low':'Out'}">⏱ ${w.level}</span>${svcLine(s)}<br/>${truckMode?truckBadges(s)+'<br/>':''}<br/>
+    ${svcLine(s)}<br/>${truckMode?truckBadges(s)+'<br/>':''}<br/>
     <button>View / Update</button>`;
     div.querySelector('button').addEventListener('click',()=>openModal(s));
     list.appendChild(div);
@@ -153,11 +150,9 @@ function openModal(s){
   html+=nearbySOSHtml(s,3);
   document.getElementById('mPrices').innerHTML=html;
   // wait-time UI
-  const w=waitFor(s.id);
-  document.getElementById('mWait').innerHTML=`<b>Wait time: ${w.level}</b> (${w.count} reports)<br/>
-    <button onclick="window.setWait('No rush')">No rush</button>
-    <button onclick="window.setWait('Medium')">Medium</button>
-    <button onclick="window.setWait('Long')">Long 15m+</button>`;
+  document.getElementById('mPrices').innerHTML=html;
+  document.getElementById('mWait').innerHTML='';
+  document.getElementById('mWait').style.display='none';
   // cng alert UI
   const mc=document.getElementById('mCngAlert');
   if(s.has_cng){
