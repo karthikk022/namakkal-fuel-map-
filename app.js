@@ -244,14 +244,23 @@ function bindUI(){
   document.getElementById('mDir').onclick=()=>{
     if(!current) return;
     if(window.routeCtrl){ try{map.removeControl(window.routeCtrl);}catch(e){} window.routeCtrl=null; }
-    window.routeCtrl=L.Routing.control({
-      waypoints:[L.latLng(current.lat,current.lon)],
-      lineOptions:{styles:[{color:'#16A34A',weight:5}]},
-      createMarker:function(){return null;},
-      show:false,
-      fitSelectedRoutes:true
-    }).addTo(map);
-    map.setView([current.lat,current.lon],13);
+    const dest=L.latLng(current.lat,current.lon);
+    let waypoints=[dest];
+    if(userPos) waypoints=[L.latLng(userPos.lat,userPos.lon), dest];
+    try{
+      window.routeCtrl=L.Routing.control({
+        waypoints:waypoints,
+        lineOptions:{styles:[{color:'#16A34A',weight:5}]},
+        createMarker:function(){return null;},
+        show:true,
+        fitSelectedRoutes:true,
+        routeWhileDragging:false
+      }).addTo(map);
+      map.closePopup();
+      document.getElementById('modal').classList.add('hidden');
+      map.setView(dest,13);
+      if(!userPos) alert('Allow GPS for full route. Use Nearest first to set your location.');
+    }catch(e){ alert('Route error: '+e.message+'. Try again.'); }
   };
   // trend only (trip removed - will add later if needed)
   document.getElementById('trendBtn').onclick=showTrend;
