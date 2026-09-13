@@ -62,8 +62,42 @@ function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
 function initMap(){
   if(map){ map.remove(); markers=[]; }
-  map=L.map('map').setView([11.24,78.14],10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  map=L.map('map').setView([11.24,78.14],10,{rotate:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',updateWhenZooming:false,updateWhenIdle:true}).addTo(map);
+  setupCompass();
+}
+function setupCompass(){
+  const c=document.getElementById('compass'); if(!c) return;
+  let angle=0, dragging=false, lastY=0;
+  c.style.transform='rotate(0deg)';
+  c.onclick=()=>{
+    if(angle===0){ angle=45; } else if(angle===45){ angle=90; } else if(angle===90){ angle=180; } else { angle=0; }
+    applyRotation(angle);
+  };
+  c.ontouchstart=c.onmousedown=(e)=>{
+    e.preventDefault(); dragging=true;
+    lastY=e.touches?e.touches[0].clientY:e.clientY;
+  };
+  const onMove=(e)=>{
+    if(!dragging) return;
+    const y=e.touches?e.touches[0].clientY:e.clientY;
+    const dx=y-lastY;
+    angle=(angle+dx*0.5)%360;
+    if(angle<0) angle+=360;
+    applyRotation(angle);
+    lastY=y;
+  };
+  const onUp=()=>{ dragging=false; };
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('touchend',onUp);
+}
+function applyRotation(deg){
+  const c=document.getElementById('compass');
+  if(c) c.style.transform=`rotate(${deg}deg)`;
+  const tilePane=document.querySelector('.leaflet-tile-pane');
+  if(tilePane) tilePane.style.transform=`rotate(${deg}deg)`;
 }
 function fitAll(){
   if(!stations.length||!map) return;
