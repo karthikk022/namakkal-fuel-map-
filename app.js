@@ -116,11 +116,14 @@ async function fetchNearby(lat,lon){
   const key=`${lat.toFixed(3)},${lon.toFixed(3)}`;
   if(nearbyCache[key]) return nearbyCache[key];
   const radius=2000;
-  const query=`[out:json][timeout:8];(node["amenity"="atm"](around:${radius},${lat},${lon});node["amenity"="restaurant"](around:${radius},${lat},${lon});node["amenity"="pharmacy"](around:${radius},${lat},${lon});node["amenity"="parking"](around:${radius},${lat},${lon}););out body;`;
+  const query=`[out:json][timeout:10];(node["amenity"="atm"](around:${radius},${lat},${lon});node["amenity"="restaurant"](around:${radius},${lat},${lon});node["amenity"="pharmacy"](around:${radius},${lat},${lon});node["amenity"="parking"](around:${radius},${lat},${lon}););out body;`;
   try{
     const resp=await fetch('https://overpass-api.de/api/interpreter',{
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      headers:{
+        'Content-Type':'application/x-www-form-urlencoded',
+        'User-Agent':'NamakkalFuelMap/1.0'
+      },
       body:'data='+encodeURIComponent(query)
     });
     if(!resp.ok) throw new Error('API '+resp.status);
