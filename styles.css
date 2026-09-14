@@ -3,51 +3,148 @@
   --ink:#101D42; --petrol:#2563EB; --diesel:#D97706; --diesel-bg:#FEF3C7;
   --cng:#0D9488; --cng-bg:#CCFBF1; --leaf:#16A34A; --rose:#E11D48;
   --sun:#FFD23F; --bg:#FFF7E8; --card:#FFFFFF; --muted:#6B7280;
+  --radius:16px; --shadow:0 4px 20px rgba(16,29,66,.12);
 }
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui;background:var(--bg);color:#111827}
-header{background:linear-gradient(120deg,var(--ink) 0%,#1E3A8A 55%,#0D9488 130%);color:#fff;padding:14px 18px 12px;position:sticky;top:0;z-index:1000;box-shadow:0 4px 20px rgba(16,29,66,.35)}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui;background:var(--bg);color:#111827}
+
+/* ===== LOADER ===== */
+#loader{position:fixed;inset:0;z-index:9999;background:var(--ink);display:grid;place-items:center;transition:opacity .4s}
+#loader.hide{opacity:0;pointer-events:none}
+.loader-card{text-align:center}
+.loader-icon{font-size:56px;animation:pulse 1.2s ease-in-out infinite}
+.loader-title{font-family:"Baloo 2";font-size:28px;color:#fff;margin:8px 0 16px}
+.loader-bar{width:200px;height:4px;background:#ffffff22;border-radius:4px;overflow:hidden;margin:0 auto}
+.loader-shimmer{width:40%;height:100%;background:var(--sun);border-radius:4px;animation:shimmer 1s ease-in-out infinite}
+.loader-text{color:#ffffffaa;font-size:13px;margin-top:12px}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* ===== HEADER ===== */
+header{background:linear-gradient(135deg,var(--ink) 0%,#1E3A8A 100%);color:#fff;padding:14px 20px 12px;position:sticky;top:0;z-index:1000;box-shadow:0 4px 20px rgba(16,29,66,.35)}
 .brand{display:flex;align-items:center;gap:12px}
 .logo{width:44px;height:44px;border-radius:14px;background:var(--sun);display:grid;place-items:center;font-size:26px;transform:rotate(-6deg);box-shadow:0 4px 0 #00000022}
-.brand h1{margin:0;font-family:"Baloo 2",Inter;font-size:24px;letter-spacing:.2px}
+.brand h1{margin:0;font-family:"Baloo 2",Inter;font-size:22px;letter-spacing:.2px}
 .brand h1 span{color:var(--sun)}
-#priceBar{margin:6px 0 10px;display:flex;gap:8px;flex-wrap:wrap}
-.price-pill{background:#ffffff1f;border:1px solid #ffffff33;padding:5px 12px;border-radius:100px;font-size:13px;font-weight:600;backdrop-filter:blur(6px)}
+
+#priceBar{margin:6px 0 0;display:flex;gap:6px;flex-wrap:wrap}
+.price-pill{background:#ffffff1f;border:1px solid #ffffff33;padding:4px 10px;border-radius:100px;font-size:12px;font-weight:600;backdrop-filter:blur(6px);transition:background .2s}
 .price-pill.petrol{background:var(--petrol)} .price-pill.diesel{background:var(--diesel)} .price-pill.cng{background:var(--cng)}
-.filters{display:flex;gap:8px;flex-wrap:wrap}
-.filters button{padding:9px 15px;border:2px solid transparent;border-radius:100px;cursor:pointer;background:#ffffff18;color:#fff;font-weight:700;font-size:13px;transition:.15s}
-.filters button:hover{transform:translateY(-1px)}
-.filters button.active{background:var(--sun);color:var(--ink);border-color:var(--ink)}
-#truckMode.active{background:#22C55E!important;color:#052e16!important}
-main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 152px);gap:12px;padding:12px}
-#mapWrap{position:relative;height:100%;border-radius:20px;border:3px solid var(--ink);box-shadow:0 10px 30px rgba(16,29,66,.25);overflow:hidden}
-#map{height:100%}
+.price-pill.live{background:#16A34A}
+.price-pill.alert{background:var(--rose);cursor:pointer}
+.price-pill.alert:hover{background:#BE123C}
+
+/* ===== FILTERS ===== */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.filter-sep{width:1px;height:20px;background:#ffffff33;flex-shrink:0}
+.filters button{padding:7px 13px;border:2px solid transparent;border-radius:100px;cursor:pointer;background:#ffffff15;color:#fff;font-weight:600;font-size:12px;transition:all .15s;white-space:nowrap}
+.filters button:hover{transform:translateY(-1px);background:#ffffff25}
+.filters button.active{background:var(--sun);color:var(--ink);border-color:var(--ink);font-weight:700}
+#truckMode.active{background:#22C55E!important;color:#052e16!important;border-color:#16A34A!important}
+.btn-sos{background:var(--rose)!important;border-color:var(--rose)!important}
+.btn-sos:hover{background:#BE123C!important}
+
+/* ===== MAIN LAYOUT ===== */
+main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap:12px;padding:12px}
+#mapWrap{position:relative;height:100%;border-radius:var(--radius);border:3px solid var(--ink);box-shadow:var(--shadow);overflow:hidden}
+#map{height:100%;background:#e8e4de}
 .leaflet-control-attribution{display:none!important}
-#panel{background:var(--card);border-radius:20px;border:2px solid #101d4215;padding:12px;overflow:auto}
-#panel h2{font-family:"Baloo 2";margin:4px 4px 10px;font-size:20px}
-.stn{border:2px solid #101d4212;border-radius:16px;padding:11px;margin-bottom:11px;background:linear-gradient(180deg,#fff,#FFFBF0);position:relative;overflow:hidden}
-.stn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--leaf)}
-.stn:has(.Out)::before{background:var(--rose)} .stn:has(.Low)::before{background:var(--diesel)}
-.stn h3{margin:0 0 3px;font-size:15px;font-family:"Baloo 2"}
-.stn small{color:var(--muted)}
-.badge{display:inline-block;padding:4px 10px;border-radius:100px;font-size:12px;margin:4px 5px 0 0;font-weight:700;border:1.5px solid transparent}
-.Available{background:#DCFCE7;color:#14532D;border-color:#16a34a33}
-.Low{background:var(--diesel-bg);color:#92400E;border-color:#d9770633}
-.Out{background:#FEE2E2;color:#7F1D1D;border-color:#e11d4833}
-.stn button{margin-top:8px;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:9px 14px;font-weight:700;cursor:pointer;width:100%}
-.stn button:hover{background:var(--petrol)}
-#modal,#trendModal{position:fixed;inset:0;background:rgba(16,29,66,.6);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(3px)}
-.hidden{display:none!important}
-.card{background:#fff;padding:18px;border-radius:22px;width:360px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.35);border:3px solid var(--ink)}
-.card h3{font-family:"Baloo 2";margin:0 0 4px;font-size:20px}
-#mPrices{background:linear-gradient(180deg,#F0FDF4,#ECFDF5);border:2px dashed #16a34a55;border-radius:14px;padding:10px;margin:8px 0;line-height:1.8;font-weight:500}
-#mWait button{border:2px solid var(--ink);background:#fff;border-radius:100px;padding:6px 11px;font-weight:700;cursor:pointer;margin:3px 4px 0 0}
-#mWait button:hover{background:var(--sun)}
-.row{display:flex;gap:8px;margin-top:10px}
-.row button{flex:1;border:0;border-radius:12px;padding:10px;font-weight:800;cursor:pointer}
-#mSave{background:var(--leaf);color:#fff}#mDir{background:var(--sun);color:var(--ink)}#mClose{background:#eee}
-.leaflet-popup-content b{font-size:14px}.pop-btn{background:var(--ink)!important;color:#fff;border:0;border-radius:10px;padding:7px 12px;margin-top:7px;cursor:pointer;font-weight:700;width:100%}
-#serviceFilters button{padding:7px 12px;border-radius:100px;border:2px solid #101d4222;background:#fff;font-weight:700;cursor:pointer;font-size:12px}
+
+/* ===== PANEL ===== */
+#panel{background:var(--card);border-radius:var(--radius);border:2px solid #101d4210;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.panel-header h2{font-family:"Baloo 2";margin:0;font-size:18px}
+
+/* ===== SEARCH ===== */
+.search-wrap{position:relative}
+#search{width:100%;padding:10px 36px 10px 12px;border-radius:12px;border:2px solid #101d4215;font-size:14px;transition:border-color .2s;outline:none}
+#search:focus{border-color:var(--petrol)}
+.search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:none;background:#e5e7eb;cursor:pointer;font-size:12px;color:#666;display:grid;place-items:center;transition:background .15s}
+.search-clear:hover{background:#d1d5db}
+
+/* ===== SERVICE FILTERS ===== */
+#serviceFilters{display:flex;gap:5px;flex-wrap:wrap}
+#serviceFilters button{padding:6px 10px;border-radius:100px;border:1.5px solid #101d4215;background:#fff;font-weight:600;cursor:pointer;font-size:11px;transition:all .15s}
 #serviceFilters button.active{background:var(--sun);border-color:var(--ink);color:var(--ink)}
-.stn .badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stn{line-height:1.5}
-@media(max-width:860px){main{grid-template-columns:1fr;height:auto}#mapWrap{height:52vh}#panel{max-height:46vh}.brand h1{font-size:19px}header{padding:10px 12px}.filters button{padding:7px 11px;font-size:12px}main{height:auto;padding:8px}}
+#serviceFilters button:hover{border-color:var(--ink)}
+
+/* ===== STATION CARDS ===== */
+.stn{border:2px solid #101d4210;border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--card);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.stn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.stn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--leaf);border-radius:0 4px 4px 0}
+.stn:has(.Out)::before{background:var(--rose)} .stn:has(.Low)::before{background:var(--diesel)}
+.stn.near{border-color:var(--petrol);box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+.stn h3{margin:0 0 2px;font-size:14px;font-family:"Baloo 2";line-height:1.3}
+.stn small{color:var(--muted);font-size:12px}
+
+/* ===== BADGES ===== */
+.badge{display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;margin:3px 4px 0 0;font-weight:600;border:1.5px solid transparent;white-space:nowrap}
+.badge.Available{background:#DCFCE7;color:#14532D;border-color:#16a34a22}
+.badge.Low{background:var(--diesel-bg);color:#92400E;border-color:#d9770622}
+.badge.Out{background:#FEE2E2;color:#7F1D1D;border-color:#e11d4822}
+
+.stn button{margin-top:8px;background:var(--ink);color:#fff;border:0;border-radius:12px;padding:9px 14px;font-weight:700;cursor:pointer;width:100%;font-size:13px;transition:background .15s}
+.stn button:hover{background:var(--petrol)}
+
+/* ===== MODALS ===== */
+#modal,#trendModal,#sosModal{position:fixed;inset:0;background:rgba(16,29,66,.5);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(4px);opacity:1;transition:opacity .2s}
+.hidden{display:none!important}
+.card{background:#fff;padding:20px;border-radius:22px;width:360px;max-width:92vw;box-shadow:0 24px 80px rgba(0,0,0,.3);border:3px solid var(--ink);max-height:90vh;overflow-y:auto}
+.modal-animate{animation:modalIn .25s ease-out}
+@keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.card h3{font-family:"Baloo 2";margin:0 0 4px;font-size:18px}
+.modal-label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-top:10px}
+.modal-selects{display:flex;gap:8px;margin:6px 0}
+.modal-selects select{flex:1;padding:8px;border-radius:10px;border:2px solid #101d4215;font-size:13px;font-weight:600}
+
+#mPrices{background:linear-gradient(180deg,#F0FDF4,#ECFDF5);border:2px dashed #16a34a44;border-radius:14px;padding:10px;margin:8px 0;line-height:1.7;font-weight:500;font-size:13px}
+.trend-note{font-size:12px;color:var(--muted)}
+
+/* ===== MODAL BUTTONS ===== */
+.row{display:flex;gap:8px;margin-top:12px}
+.row button{flex:1;border:0;border-radius:12px;padding:10px;font-weight:800;cursor:pointer;font-size:13px;transition:transform .1s}
+.row button:hover{transform:translateY(-1px)}
+.btn-green{background:var(--leaf);color:#fff}
+.btn-yellow{background:var(--sun);color:var(--ink)}
+.btn-gray{background:#e5e7eb;color:#374151}
+.full-w{width:100%;margin-top:8px}
+.sync-note{display:block;margin-top:8px;font-size:11px;color:var(--muted);text-align:center}
+
+/* ===== SOS ===== */
+.sos-filters{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+.sos-filters button{padding:6px 10px;border-radius:100px;border:2px solid #101d4215;background:#fff;font-weight:600;cursor:pointer;font-size:11px;transition:all .15s}
+.sos-filters button.active{background:var(--sun);border-color:var(--ink);color:var(--ink)}
+#sosList{max-height:300px;overflow:auto;margin:6px 0}
+.sos-call{display:inline-block;background:var(--leaf);color:#fff;padding:4px 10px;border-radius:100px;text-decoration:none;font-weight:700;font-size:12px}
+.sos-pending{display:inline-block;background:var(--diesel-bg);padding:4px 10px;border-radius:100px;font-size:11px;color:#92400E}
+.sos-nearby{background:#FEF2F2;border-radius:12px;padding:8px 10px;margin-top:6px;font-size:12px;line-height:1.6}
+
+/* ===== POPUPS ===== */
+.leaflet-popup-content-wrapper{border-radius:16px!important;box-shadow:0 10px 40px rgba(0,0,0,.2)!important;border:2px solid var(--ink)!important}
+.leaflet-popup-content{margin:12px 14px!important;font-size:13px;line-height:1.5}
+.leaflet-popup-content b{font-size:14px}
+.leaflet-popup-close-button{font-size:20px!important;top:6px!important;right:8px!important}
+.pop-btn{background:var(--ink)!important;color:#fff;border:0;border-radius:10px;padding:7px 12px;margin-top:7px;cursor:pointer;font-weight:700;width:100%;font-size:13px}
+
+/* ===== SCROLL TO TOP ===== */
+.scroll-top{position:fixed;bottom:24px;right:24px;width:42px;height:42px;border-radius:50%;background:var(--ink);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:1500;transition:transform .2s,opacity .2s;display:grid;place-items:center}
+.scroll-top:hover{transform:scale(1.1)}
+.scroll-top.hidden{opacity:0;pointer-events:none;transform:translateY(10px)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:860px){
+  main{grid-template-columns:1fr;height:auto}
+  #mapWrap{height:50vh}
+  #panel{max-height:50vh}
+  .brand h1{font-size:18px}
+  header{padding:10px 12px}
+  .filters button{padding:6px 10px;font-size:11px}
+  main{padding:8px}
+  .filter-sep{display:none}
+}
+@media(max-width:480px){
+  .brand{gap:8px}
+  .logo{width:36px;height:36px;font-size:20px}
+  .brand h1{font-size:16px}
+  .price-pill{font-size:11px;padding:3px 8px}
+  .filters button{padding:5px 9px;font-size:10px}
+}

@@ -4,42 +4,66 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Namakkal Live Fuel Map - Petrol Diesel CNG</title>
+<meta name="description" content="Live fuel prices for Namakkal, Tamil Nadu. Find petrol, diesel, CNG bunks with real-time availability, truck parking, and SOS contacts." />
+<meta property="og:title" content="Namakkal Live Fuel Map" />
+<meta property="og:description" content="Live petrol, diesel, CNG prices with real-time availability for Namakkal district." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://namakkal-fuel-map.vercel.app/og-image.png" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛽</text></svg>" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
 <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+
+<!-- Loading Skeleton -->
+<div id="loader">
+  <div class="loader-card">
+    <div class="loader-icon">⛽</div>
+    <div class="loader-title">Namakkal Fuel Map</div>
+    <div class="loader-bar"><div class="loader-shimmer"></div></div>
+    <div class="loader-text">Loading live prices...</div>
+  </div>
+</div>
+
 <header>
   <div class="brand">
     <div class="logo">⛽</div>
     <div>
-      <h1>Namakkal <span>Fuel Map</span> 🚛</h1>
-      <div id="priceBar">Loading live prices...</div>
+      <h1>Namakkal <span>Fuel Map</span></h1>
+      <div id="priceBar"></div>
     </div>
   </div>
-  <div class="filters">
+  <nav class="filters" id="filtersNav">
     <button data-f="all" class="active">All</button>
     <button data-f="petrol">Petrol</button>
     <button data-f="diesel">Diesel</button>
     <button data-f="cng">CNG</button>
     <button data-f="ev">⚡ EV</button>
-    <button id="sosBtn" style="background:#E11D48">🆘 SOS</button>
+    <span class="filter-sep"></span>
     <button id="nearBtn">📍 Nearest</button>
-    <button id="truckMode">🚛 Trucker Mode</button>
+    <button id="truckMode">🚛 Trucker</button>
     <button id="trendBtn">📈 Trend</button>
-    <button id="availOnly">Available only</button>
-  </div>
+    <button id="availOnly">Available</button>
+    <span class="filter-sep"></span>
+    <button id="sosBtn" class="btn-sos">🆘 SOS</button>
+  </nav>
 </header>
+
 <main>
   <div id="mapWrap">
     <div id="map"></div>
-
   </div>
   <aside id="panel">
-    <h2>Stations <span id="count"></span></h2>
-    <input id="search" placeholder="🔍 Search bunk / road / brand..." style="width:100%;padding:10px;border-radius:12px;border:2px solid #101d4222;margin-bottom:8px" />
-    <div id="serviceFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <div class="panel-header">
+      <h2>Stations <span id="count"></span></h2>
+    </div>
+    <div class="search-wrap">
+      <input id="search" placeholder="Search bunk / road / brand..." />
+      <button id="searchClear" class="search-clear hidden" title="Clear">✕</button>
+    </div>
+    <div id="serviceFilters">
       <button data-svc="food">🍲 Food</button>
       <button data-svc="restroom">🚻 Restroom</button>
       <button data-svc="air">💨 Air</button>
@@ -48,62 +72,70 @@
     <div id="list"></div>
   </aside>
 </main>
+
+<div id="scrollTop" class="scroll-top hidden" title="Back to top">↑</div>
+
 <div id="modal" class="hidden">
-  <div class="card">
+  <div class="card modal-animate">
     <h3 id="mName"></h3>
     <p id="mAddr"></p>
     <div id="mPrices"></div>
-    <div id="mWait" style="margin:8px 0"></div>
-    <div id="mCngAlert" style="margin:8px 0"></div>
-    <label>Update availability (owner/demo):</label>
-    <select id="mFuel">
-      <option value="petrol">Petrol</option>
-      <option value="diesel">Diesel</option>
-      <option value="cng">CNG</option>
-      <option value="ev">EV</option>
-    </select>
-    <select id="mStatus">
-      <option value="Available">Available</option>
-      <option value="Low">Low</option>
-      <option value="Out">Out of stock</option>
-    </select>
-    <div class="row">
-      <button id="mSave">Save</button>
-      <button id="mDir">Route here</button>
-      <button id="mClose">Close</button>
+    <div id="mWait"></div>
+    <div id="mCngAlert"></div>
+    <label class="modal-label">Update availability (owner/demo):</label>
+    <div class="modal-selects">
+      <select id="mFuel">
+        <option value="petrol">Petrol</option>
+        <option value="diesel">Diesel</option>
+        <option value="cng">CNG</option>
+        <option value="ev">EV</option>
+      </select>
+      <select id="mStatus">
+        <option value="Available">Available</option>
+        <option value="Low">Low</option>
+        <option value="Out">Out of stock</option>
+      </select>
     </div>
-    <small id="syncNote">🟢 Live via Supabase — owner updates sync to all.</small>
+    <div class="row">
+      <button id="mSave" class="btn-green">Save</button>
+      <button id="mDir" class="btn-yellow">Route here</button>
+      <button id="mClose" class="btn-gray">Close</button>
+    </div>
+    <small class="sync-note" id="syncNote">🟢 Live via Supabase — owner updates sync to all.</small>
   </div>
 </div>
+
 <div id="trendModal" class="hidden">
-  <div class="card" style="width:420px">
+  <div class="card modal-animate" style="width:420px">
     <h3>Namakkal 10-day Price Trend</h3>
     <canvas id="trendChart" height="220"></canvas>
-    <p id="trendNote" style="font-size:12px"></p>
-    <button id="trendClose">Close</button>
+    <p id="trendNote" class="trend-note"></p>
+    <button id="trendClose" class="btn-gray full-w">Close</button>
   </div>
 </div>
+
 <div id="sosModal" class="hidden">
-  <div class="card" style="width:400px">
-    <h3>🆘 Highway SOS - Namakkal</h3>
-    <div style="display:flex;gap:6px;margin:6px 0">
+  <div class="card modal-animate" style="width:400px">
+    <h3>🆘 Highway SOS — Namakkal</h3>
+    <div class="sos-filters">
       <button data-sos="all" class="active">All</button>
       <button data-sos="hospital">🏥 Hospital</button>
       <button data-sos="mechanic">🔧 Mechanic</button>
       <button data-sos="puncture">🛞 Puncture</button>
       <button data-sos="police">🚔 Police</button>
     </div>
-    <div id="sosList" style="max-height:300px;overflow:auto"></div>
-    <button id="sosClose">Close</button>
+    <div id="sosList"></div>
+    <button id="sosClose" class="btn-gray full-w">Close</button>
   </div>
 </div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
-<script src="supabase-config.js?v=2"></script>
-<script src="app.js?v=6"></script>
+<script src="supabase-config.js?v=3"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
