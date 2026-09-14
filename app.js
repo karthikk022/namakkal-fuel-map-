@@ -113,35 +113,25 @@ async function fetchWeather(){
 // --- NEARBY AMENITIES ---
 const nearbyCache={};
 async function fetchNearby(lat,lon){
-  const key=`${lat.toFixed(3)},${lon.toFixed(3)}`;
+  const key=`${lat.toFixed(4)},${lon.toFixed(4)}`;
   if(nearbyCache[key]) return nearbyCache[key];
-  const types=['atm','restaurant','pharmacy','fuel','parking','cafe'];
-  const items=[];
+  const r=1500;
+  const query=`[out:json][timeout:8];(node["amenity"="atm"](around:${r},${lat},${lon});node["amenity"="restaurant"](around:${r},${lat},${lon});node["amenity"="pharmacy"](around:${r},${lat},${lon});node["amenity"="parking"](around:${r},${lat},${lon});node["amenity"="fuel"](around:${r},${lat},${lon}););out body;`;
   try{
-    for(const t of types){
-      const url=`https://nominatim.openstreetmap.org/search?q=${t}&format=json&limit=3&viewbox=${lon-0.02},${lat+0.02},${lon+0.02},${lat-0.02}&bounded=1`;
-      const r=await fetch(url,{headers:{'Accept':'application/json','User-Agent':'NamakkalFuelMap/1.0'}});
-      if(!r.ok) continue;
-      const d=await r.json();
-      d.forEach(e=>{
-        const dist=Math.round(distKm(lat,lon,parseFloat(e.lat),parseFloat(e.lon))*1000);
-        if(dist<=2000&&dist>0){
-          items.push({type:t,name:e.display_name.split(',')[0],dist});
-        }
-      });
-      // Rate limit: 1 req/sec for Nominatim
-      await new Promise(r=>setTimeout(r,1100));
-    }
-    items.sort((a,b)=>a.dist-b.dist);
-    const unique=[];
-    const seen=new Set();
-    items.forEach(i=>{
-      const k=i.name.toLowerCase();
-      if(!seen.has(k)){seen.add(k);unique.push(i);}
-    });
-    const result=unique.slice(0,8);
-    nearbyCache[key]=result;
-    return result;
+    // Use GET to avoid CORS issues with POST
+    const url='https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query);
+    const resp=await fetch(url);
+    if(!resp.ok) throw new Error('API '+resp.status);
+    const d=await resp.json();
+    if(!d.elements) throw new Error('No data');
+    const items=d.elements.filter(e=>e.tags).map(e=>{
+      const type=e.tags.amenity||'other';
+      const dist=Math.round(distKm(lat,lon,e.lat,e.lon)*1000);
+      const name=e.tags.name||e.tags['name:en']||e.tags['name:ta']||type;
+      return{type,name,dist};
+    }).filter(i=>i.dist>5&&i.dist<=1500).sort((a,b)=>a.dist-b.dist).slice(0,6);
+    nearbyCache[key]=items;
+    return items;
   }catch(e){
     console.log('Nearby error:',e.message);
     nearbyCache[key]=[];
