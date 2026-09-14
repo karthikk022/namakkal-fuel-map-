@@ -101,28 +101,29 @@ const nearbyCache={};
 async function fetchNearby(lat,lon){
   const key=`${lat.toFixed(3)},${lon.toFixed(3)}`;
   if(nearbyCache[key]) return nearbyCache[key];
-  const r=2000; // 2km radius
-  const query=`[out:json][timeout:8];
-  (
-    node["amenity"="atm"](around:${r},${lat},${lon});
-    node["amenity"="restaurant"](around:${r},${lat},${lon});
-    node["amenity"="pharmacy"](around:${r},${lat},${lon});
-    node["amenity"="fuel"](around:${r},${lat},${lon});
-    node["amenity"="parking"](around:${r},${lat},${lon});
-    node["shop"="supermarket"](around:${r},${lat},${lon});
-  );
-  out body;`;
+  const radius=2000;
+  const query=`[out:json][timeout:8];(node["amenity"="atm"](around:${radius},${lat},${lon});node["amenity"="restaurant"](around:${radius},${lat},${lon});node["amenity"="pharmacy"](around:${radius},${lat},${lon});node["amenity"="parking"](around:${radius},${lat},${lon}););out body;`;
   try{
-    const r2=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
-    const d=await r2.json();
+    const resp=await fetch('https://overpass-api.de/api/interpreter',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'data='+encodeURIComponent(query)
+    });
+    if(!resp.ok) throw new Error('API '+resp.status);
+    const d=await resp.json();
+    if(!d.elements) throw new Error('No data');
     const items=d.elements.filter(e=>e.tags&&e.tags.name).map(e=>{
-      const type=e.tags.amenity||e.tags.shop||'other';
+      const type=e.tags.amenity||'other';
       const dist=Math.round(distKm(lat,lon,e.lat,e.lon)*1000);
-      return{type,name:e.tags.name,dist,lat:e.lat,lon:e.lon};
+      return{type,name:e.tags.name,dist};
     }).sort((a,b)=>a.dist-b.dist).slice(0,8);
     nearbyCache[key]=items;
     return items;
-  }catch(e){return[];}
+  }catch(e){
+    console.log('Nearby fetch error:',e.message);
+    nearbyCache[key]=[];
+    return[];
+  }
 }
 function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
@@ -246,9 +247,11 @@ function openModal(s){
   document.getElementById('mWait').style.display='none';
   // Nearby amenities
   const mna=document.getElementById('mNearby');
-  mna.innerHTML='<div class="nearby-loading">🔍 Loading nearby amenities...</div>';
+  mna.innerHTML='<div class="nearby-loading">🔍 Searching nearby amenities...</div>';
+  const nearbyTimeout=setTimeout(()=>{mna.innerHTML='<div class="nearby-loading">📍 Loading amenities...</div>';},3000);
   fetchNearby(s.lat,s.lon).then(items=>{
-    if(!items.length){mna.innerHTML='';return;}
+    clearTimeout(nearbyTimeout);
+    if(!items.length){mna.innerHTML='<div class="nearby-loading" style="font-size:11px;color:var(--muted)">📍 No amenities found within 2km</div>';return;}
     let h='<div class="nearby-title">📍 Within 2km:</div>';
     items.forEach(a=>{
       const icon=a.type==='atm'?'🏧':a.type==='restaurant'?'🍽':a.type==='pharmacy'?'💊':a.type==='parking'?'🅿️':'🏪';
