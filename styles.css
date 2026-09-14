@@ -50,6 +50,13 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap
 #map{height:100%;background:#e8e4de}
 .leaflet-control-attribution{display:none!important}
 
+/* ===== MAP OVERLAY ===== */
+.map-overlay{position:absolute;inset:0;background:rgba(255,247,232,.85);display:grid;place-items:center;z-index:500;pointer-events:none}
+.map-overlay.hidden{display:none}
+.map-overlay-content{text-align:center;padding:20px}
+.map-overlay-icon{font-size:48px;margin-bottom:8px;opacity:.6}
+.map-overlay-text{font-size:14px;color:var(--muted);font-weight:500}
+
 /* ===== PANEL ===== */
 #panel{background:var(--card);border-radius:var(--radius);border:2px solid #101d4210;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
 .panel-header h2{font-family:"Baloo 2";margin:0;font-size:18px}
@@ -76,6 +83,12 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap
 .stn h3{margin:0 0 2px;font-size:14px;font-family:"Baloo 2";line-height:1.3}
 .stn small{color:var(--muted);font-size:12px}
 
+/* ===== EMPTY STATE ===== */
+.empty-state{text-align:center;padding:30px 20px;color:var(--muted)}
+.empty-state-icon{font-size:40px;margin-bottom:8px;opacity:.5}
+.empty-state-title{font-family:"Baloo 2";font-size:16px;color:var(--ink);margin:0 0 4px}
+.empty-state-text{font-size:13px;line-height:1.5}
+
 /* ===== BADGES ===== */
 .badge{display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;margin:3px 4px 0 0;font-weight:600;border:1.5px solid transparent;white-space:nowrap}
 .badge.Available{background:#DCFCE7;color:#14532D;border-color:#16a34a22}
@@ -89,15 +102,20 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap
 #modal,#trendModal,#sosModal{position:fixed;inset:0;background:rgba(16,29,66,.5);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(4px);opacity:1;transition:opacity .2s}
 .hidden{display:none!important}
 .card{background:#fff;padding:20px;border-radius:22px;width:360px;max-width:92vw;box-shadow:0 24px 80px rgba(0,0,0,.3);border:3px solid var(--ink);max-height:90vh;overflow-y:auto}
+.modal-wide{width:420px}
 .modal-animate{animation:modalIn .25s ease-out}
 @keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-.card h3{font-family:"Baloo 2";margin:0 0 4px;font-size:18px}
-.modal-label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-top:10px}
+.modal-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.modal-header h3{font-family:"Baloo 2";margin:0;font-size:18px;flex:1}
+.modal-close-x{width:28px;height:28px;border-radius:50%;border:none;background:#e5e7eb;cursor:pointer;font-size:14px;color:#666;display:grid;place-items:center;transition:background .15s;flex-shrink:0}
+.modal-close-x:hover{background:#d1d5db;color:#111}
+.modal-divider{height:1px;background:#e5e7eb;margin:12px 0}
+.modal-label{font-size:12px;color:var(--muted);font-weight:600;display:block}
 .modal-selects{display:flex;gap:8px;margin:6px 0}
 .modal-selects select{flex:1;padding:8px;border-radius:10px;border:2px solid #101d4215;font-size:13px;font-weight:600}
 
 #mPrices{background:linear-gradient(180deg,#F0FDF4,#ECFDF5);border:2px dashed #16a34a44;border-radius:14px;padding:10px;margin:8px 0;line-height:1.7;font-weight:500;font-size:13px}
-.trend-note{font-size:12px;color:var(--muted)}
+.trend-note{font-size:12px;color:var(--muted);margin-top:8px}
 
 /* ===== MODAL BUTTONS ===== */
 .row{display:flex;gap:8px;margin-top:12px}
@@ -130,6 +148,21 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap
 .scroll-top:hover{transform:scale(1.1)}
 .scroll-top.hidden{opacity:0;pointer-events:none;transform:translateY(10px)}
 
+/* ===== FOOTER ===== */
+footer{background:var(--ink);color:#ffffffaa;padding:10px 20px;text-align:center;font-size:11px;position:sticky;bottom:0;z-index:999}
+.footer-inner{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}
+footer a{color:var(--sun);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.footer-sep{opacity:.4}
+
+/* ===== BOTTOM NAV (MOBILE) ===== */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--ink);padding:8px 12px;z-index:1100;justify-content:center;align-items:center;gap:4px;box-shadow:0 -4px 20px rgba(0,0,0,.2)}
+.bottom-nav button{width:40px;height:40px;border-radius:50%;border:2px solid transparent;cursor:pointer;background:#ffffff15;color:#fff;font-weight:700;font-size:13px;transition:all .15s;display:grid;place-items:center}
+.bottom-nav button.active{background:var(--sun);color:var(--ink);border-color:var(--ink)}
+.bottom-nav button[data-nav="action"]{border-radius:12px;width:auto;padding:0 10px}
+.bottom-nav .btn-sos{background:var(--rose)!important;border-color:var(--rose)!important}
+.nav-sep{width:1px;height:24px;background:#ffffff33;flex-shrink:0}
+
 /* ===== RESPONSIVE ===== */
 @media(max-width:860px){
   main{grid-template-columns:1fr;height:auto}
@@ -137,14 +170,18 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap
   #panel{max-height:50vh}
   .brand h1{font-size:18px}
   header{padding:10px 12px}
-  .filters button{padding:6px 10px;font-size:11px}
+  .filters{display:none}
+  .bottom-nav{display:flex}
   main{padding:8px}
+  footer{margin-bottom:56px}
   .filter-sep{display:none}
+  .scroll-top{bottom:70px}
 }
 @media(max-width:480px){
   .brand{gap:8px}
   .logo{width:36px;height:36px;font-size:20px}
   .brand h1{font-size:16px}
   .price-pill{font-size:11px;padding:3px 8px}
-  .filters button{padding:5px 9px;font-size:10px}
+  .bottom-nav button{width:36px;height:36px;font-size:12px}
+  .bottom-nav button[data-nav="action"]{padding:0 8px}
 }

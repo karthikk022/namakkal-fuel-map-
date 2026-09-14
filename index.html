@@ -53,6 +53,12 @@
 <main>
   <div id="mapWrap">
     <div id="map"></div>
+    <div id="mapOverlay" class="map-overlay hidden">
+      <div class="map-overlay-content">
+        <div class="map-overlay-icon">📍</div>
+        <div class="map-overlay-text">Tap "Nearest" to find bunks near you</div>
+      </div>
+    </div>
   </div>
   <aside id="panel">
     <div class="panel-header">
@@ -72,15 +78,34 @@
   </aside>
 </main>
 
+<!-- Mobile Bottom Nav -->
+<nav id="bottomNav" class="bottom-nav">
+  <button data-f="all" class="active" data-nav="fuel">⛽</button>
+  <button data-f="petrol" data-nav="fuel">P</button>
+  <button data-f="diesel" data-nav="fuel">D</button>
+  <button data-f="cng" data-nav="fuel">C</button>
+  <button data-f="ev" data-nav="fuel">⚡</button>
+  <span class="nav-sep"></span>
+  <button id="nearBtnMobile" data-nav="action">📍</button>
+  <button id="truckModeMobile" data-nav="action">🚛</button>
+  <button id="trendBtnMobile" data-nav="action">📈</button>
+  <span class="nav-sep"></span>
+  <button id="sosBtnMobile" class="btn-sos" data-nav="sos">🆘</button>
+</nav>
+
 <div id="scrollTop" class="scroll-top hidden" title="Back to top">↑</div>
 
 <div id="modal" class="hidden">
   <div class="card modal-animate">
-    <h3 id="mName"></h3>
+    <div class="modal-header">
+      <h3 id="mName"></h3>
+      <button id="mCloseX" class="modal-close-x" title="Close">✕</button>
+    </div>
     <p id="mAddr"></p>
     <div id="mPrices"></div>
     <div id="mWait"></div>
     <div id="mCngAlert"></div>
+    <div class="modal-divider"></div>
     <label class="modal-label">Update availability (owner/demo):</label>
     <div class="modal-selects">
       <select id="mFuel">
@@ -105,8 +130,11 @@
 </div>
 
 <div id="trendModal" class="hidden">
-  <div class="card modal-animate" style="width:420px">
-    <h3>Namakkal 10-day Price Trend</h3>
+  <div class="card modal-animate modal-wide">
+    <div class="modal-header">
+      <h3>Namakkal 10-day Price Trend</h3>
+      <button id="trendCloseX" class="modal-close-x" title="Close">✕</button>
+    </div>
     <canvas id="trendChart" height="220"></canvas>
     <p id="trendNote" class="trend-note"></p>
     <button id="trendClose" class="btn-gray full-w">Close</button>
@@ -114,8 +142,11 @@
 </div>
 
 <div id="sosModal" class="hidden">
-  <div class="card modal-animate" style="width:400px">
-    <h3>🆘 Highway SOS — Namakkal</h3>
+  <div class="card modal-animate modal-wide">
+    <div class="modal-header">
+      <h3>🆘 Highway SOS — Namakkal</h3>
+      <button id="sosCloseX" class="modal-close-x" title="Close">✕</button>
+    </div>
     <div class="sos-filters">
       <button data-sos="all" class="active">All</button>
       <button data-sos="hospital">🏥 Hospital</button>
@@ -128,13 +159,23 @@
   </div>
 </div>
 
+<footer id="appFooter">
+  <div class="footer-inner">
+    <span id="lastUpdated">Last updated: —</span>
+    <span class="footer-sep">·</span>
+    <span>Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+    <span class="footer-sep">·</span>
+    <span>Tiles by <a href="https://openfreemap.org/" target="_blank" rel="noopener">OpenFreeMap</a></span>
+  </div>
+</footer>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
-<script src="supabase-config.js?v=3"></script>
-<script src="app.js?v=8"></script>
+<script src="supabase-config.js?v=4"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

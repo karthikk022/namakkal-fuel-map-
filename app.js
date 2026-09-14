@@ -59,6 +59,7 @@ async function load(){
     `<span class="price-pill" id="livePill">📴 Local</span>`+
     `<span class="price-pill alert" id="dropPill" title="Price drop alert">🔔 Alert</span>`;
   initMap(); render(); bindUI(); checkCngAlerts(); initSupabase(); checkPriceDrop(); fitAll();
+  updateFooter();
   hideLoader();
 }
 function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
@@ -74,6 +75,17 @@ function initMap(){
 function fitAll(){
   if(!stations.length||!map) return;
   try{ map.fitBounds(stations.map(s=>[s.lat,s.lon]),{padding:[20,20]}); }catch(e){}
+}
+
+// --- FOOTER ---
+function updateFooter(){
+  const el=document.getElementById('lastUpdated');
+  if(!el) return;
+  const now=new Date();
+  const h=now.getHours(), m=String(now.getMinutes()).padStart(2,'0');
+  const ampm=h>=12?'PM':'AM';
+  const h12=h%12||12;
+  el.textContent=`Last updated: ${h12}:${m} ${ampm} IST`;
 }
 
 // --- LOADER ---
@@ -123,7 +135,6 @@ function render(){
       if(filter==='ev'&&!s.has_ev) return;
     }
     const st={petrol:s.has_petrol?statusFor(s.id,'petrol'):null,diesel:s.has_diesel?statusFor(s.id,'diesel'):null,cng:s.has_cng?statusFor(s.id,'cng'):null,ev:s.has_ev?statusFor(s.id,'ev'):null};
-    if(availOnly&&!Object.values(st).includes('Available')) return;
     shown++;
     const isNear=nearIds.includes(s.id);
     const dTxt=(userPos&&s._d!=null)?` · ${s._d.toFixed(1)} km`:'';
@@ -143,8 +154,11 @@ function render(){
   });
   document.getElementById('count').textContent=`(${shown})${truckMode?' 🚛 Trucker':''}`;
   if(!shown){
-    list.innerHTML=`<div class="stn" style="text-align:center"><h3>No bunks found</h3><small>Try different search or clear filters.</small><br/><br/><button id="clearF">Clear all filters</button></div>`;
-    document.getElementById('clearF').onclick=()=>{searchQ='';svcFilter.clear();filter='all';truckMode=false;const se=document.getElementById('search');if(se)se.value='';document.getElementById('searchClear').classList.add('hidden');document.querySelectorAll('[data-svc]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f==='all'));document.getElementById('truckMode').classList.remove('active');render();};
+    const icon=searchQ?'🔍':svcFilter.size?'🔧':truckMode?'🚛':'⛽';
+    const title=searchQ?'No matches':svcFilter.size?'No matching services':truckMode?'No truck stops found':'No stations';
+    const tip=searchQ?'Try a different search term':svcFilter.size?'Remove some service filters':truckMode?'Try switching to "All" filter':'Adjust your filters';
+    list.innerHTML=`<div class="empty-state"><div class="empty-state-icon">${icon}</div><div class="empty-state-title">${title}</div><div class="empty-state-text">${tip}</div><br/><button id="clearF" class="btn-gray" style="width:auto;padding:8px 20px;border-radius:100px;font-weight:700;cursor:pointer;font-size:13px">Clear all filters</button></div>`;
+    document.getElementById('clearF').onclick=()=>{searchQ='';svcFilter.clear();filter='all';truckMode=false;const se=document.getElementById('search');if(se)se.value='';document.getElementById('searchClear').classList.add('hidden');document.querySelectorAll('[data-svc]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f==='all'));document.getElementById('truckMode').classList.remove('active');syncBottomNav();render();};
   }
 }
 
@@ -243,12 +257,13 @@ async function checkPriceDrop(){
 function bindUI(){
   // Fuel filters
   document.querySelectorAll('.filters button[data-f]').forEach(b=>{
-    b.onclick=()=>{document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.f;truckMode=false;document.getElementById('truckMode').classList.remove('active');render();};
+    b.onclick=()=>{document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.f;truckMode=false;document.getElementById('truckMode').classList.remove('active');syncBottomNav();render();};
   });
-  document.getElementById('truckMode').onclick=(e)=>{truckMode=!truckMode;e.target.classList.toggle('active');render();};
+  document.getElementById('truckMode').onclick=(e)=>{truckMode=!truckMode;e.target.classList.toggle('active');syncBottomNav();render();};
 
   // Modal close
   document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.add('hidden');
+  document.getElementById('mCloseX').onclick=()=>document.getElementById('modal').classList.add('hidden');
   document.getElementById('modal').addEventListener('click',(e)=>{if(e.target.id==='modal') e.target.classList.add('hidden');});
 
   // Save
@@ -295,6 +310,7 @@ function bindUI(){
   // Trend
   document.getElementById('trendBtn').onclick=showTrend;
   document.getElementById('trendClose').onclick=()=>document.getElementById('trendModal').classList.add('hidden');
+  document.getElementById('trendCloseX').onclick=()=>document.getElementById('trendModal').classList.add('hidden');
   document.getElementById('trendModal').addEventListener('click',(e)=>{if(e.target.id==='trendModal') e.target.classList.add('hidden');});
 
   // Nearest
@@ -303,6 +319,7 @@ function bindUI(){
   // SOS
   document.getElementById('sosBtn').onclick=showSOS;
   document.getElementById('sosClose').onclick=()=>document.getElementById('sosModal').classList.add('hidden');
+  document.getElementById('sosCloseX').onclick=()=>document.getElementById('sosModal').classList.add('hidden');
   document.getElementById('sosModal').addEventListener('click',(e)=>{if(e.target.id==='sosModal') e.target.classList.add('hidden');});
   document.querySelectorAll('[data-sos]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-sos]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderSOS(b.dataset.sos);});
 
@@ -317,26 +334,60 @@ function bindUI(){
   // Service filters
   document.querySelectorAll('[data-svc]').forEach(b=>b.onclick=()=>{const k=b.dataset.svc;if(svcFilter.has(k)){svcFilter.delete(k);b.classList.remove('active');}else{svcFilter.add(k);b.classList.add('active');}render();});
 
-  // ESC to close modals
+  // ESC to close modals + / to search
   document.addEventListener('keydown',(e)=>{
     if(e.key==='Escape'){
       document.getElementById('modal').classList.add('hidden');
       document.getElementById('trendModal').classList.add('hidden');
       document.getElementById('sosModal').classList.add('hidden');
     }
-    // / to focus search
     if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){
       e.preventDefault();se&&se.focus();
     }
   });
 
-  // Scroll to top button
+  // Scroll to top
   const st=document.getElementById('scrollTop');
   const panel=document.getElementById('panel');
   if(panel){
     panel.addEventListener('scroll',()=>{st.classList.toggle('hidden',panel.scrollTop<200);});
     st.onclick=()=>panel.scrollTo({top:0,behavior:'smooth'});
   }
+
+  // Bottom nav (mobile)
+  bindBottomNav();
+}
+
+// --- BOTTOM NAV ---
+function syncBottomNav(){
+  document.querySelectorAll('.bottom-nav button[data-f]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.f===filter);
+  });
+  const tb=document.getElementById('truckModeMobile');
+  if(tb) tb.classList.toggle('active',truckMode);
+}
+function bindBottomNav(){
+  // Fuel filters
+  document.querySelectorAll('.bottom-nav button[data-f]').forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll('.bottom-nav button[data-f]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      filter=b.dataset.f;
+      truckMode=false;
+      document.getElementById('truckMode').classList.remove('active');
+      document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f===filter));
+      render();
+    };
+  });
+  // Actions
+  const nb=document.getElementById('nearBtnMobile');
+  if(nb) nb.onclick=()=>findNearest();
+  const tb=document.getElementById('truckModeMobile');
+  if(tb) tb.onclick=()=>{truckMode=!truckMode;tb.classList.toggle('active');document.getElementById('truckMode').classList.toggle('active',truckMode);render();};
+  const trb=document.getElementById('trendBtnMobile');
+  if(trb) trb.onclick=()=>showTrend();
+  const sb=document.getElementById('sosBtnMobile');
+  if(sb) sb.onclick=()=>showSOS();
 }
 
 // --- SOS ---
@@ -373,7 +424,7 @@ function renderSOS(f){
     div.querySelector('button').onclick=(e)=>{window.open(`https://www.google.com/maps/dir/?api=1&destination=${e.target.dataset.lat},${e.target.dataset.lon}`,'_blank');};
     list.appendChild(div);
   });
-  if(!list.children.length) list.innerHTML='<small>No SOS in this category yet.</small>';
+  if(!list.children.length) list.innerHTML='<div class="empty-state"><div class="empty-state-icon">🚔</div><div class="empty-state-title">No SOS here</div></div>';
 }
 
 // --- NEAREST ---
@@ -381,10 +432,11 @@ let userPos=null, nearIds=[], userMarker=null;
 function distKm(a,b,c,d){ const R=6371,r=x=>x*Math.PI/180; const h=Math.sin(r(c-a)/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(r(d-b)/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
 function findNearest(){
   if(!navigator.geolocation){ alert('GPS not supported'); return; }
-  const btn=document.getElementById('nearBtn'); btn.textContent='⌛ Locating...';
+  const btn=document.getElementById('nearBtn'); const btnM=document.getElementById('nearBtnMobile');
+  if(btn) btn.textContent='⌛ Locating...'; if(btnM) btnM.textContent='⌛';
   navigator.geolocation.getCurrentPosition(pos=>{
     userPos={lat:pos.coords.latitude,lon:pos.coords.longitude};
-    btn.textContent='📍 Nearest';
+    if(btn) btn.textContent='📍 Nearest'; if(btnM) btnM.textContent='📍';
     if(userMarker){ try{map.removeLayer(userMarker);}catch(e){} }
     userMarker=L.circleMarker([userPos.lat,userPos.lon],{radius:9,color:'#2563EB',fillColor:'#2563EB',fillOpacity:1}).addTo(map).bindPopup('You are here').openPopup();
     map.setView([userPos.lat,userPos.lon],12);
@@ -401,7 +453,7 @@ function findNearest(){
     render();
     const top=pool[0];
     if(top) document.getElementById('count').textContent=`(nearest ${top.name} ${top._d.toFixed(1)}km)`;
-  },err=>{ btn.textContent='📍 Nearest'; alert('GPS blocked — allow location. '+err.message); },{timeout:10000});
+  },err=>{ if(btn) btn.textContent='📍 Nearest'; if(btnM) btnM.textContent='📍'; alert('GPS blocked — allow location. '+err.message); },{timeout:10000});
 }
 
 // --- TREND ---
