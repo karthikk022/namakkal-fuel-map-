@@ -65,8 +65,35 @@ async function load(){
     `<span class="price-pill" id="livePill">📴 Local</span>`+
     `<span class="price-pill alert" id="dropPill" title="Price drop alert">🔔 Alert</span>`;
   initMap(); render(); bindUI(); checkCngAlerts(); initSupabase(); checkPriceDrop(); fitAll();
-  updateFooter();
+  updateFooter(); fetchWeather();
   hideLoader();
+}
+
+// --- WEATHER ---
+async function fetchWeather(){
+  try{
+    const r=await fetch('https://wttr.in/Namakkal?format=j1');
+    const d=await r.json();
+    const cur=d.current_condition[0];
+    const temp=cur.temp_C;
+    const code=parseInt(cur.weatherCode);
+    let icon='🌤';
+    if(code>=113&&code<=116) icon='☀️';
+    else if(code>=119&&code<=122) icon='☁️';
+    else if(code>=176&&code<=263) icon='🌧';
+    else if(code>=266&&code<=314) icon='🌦';
+    else if(code>=317&&code<=395) icon='❄️';
+    else if(code>=200&&code<=227) icon='⛈';
+    else if(code>=248&&code<=260) icon='🌫';
+    // Fog/rain alert
+    const desc=cur.weatherDesc[0].value.toLowerCase();
+    let alert='';
+    if(desc.includes('fog')||desc.includes('mist')) alert=' 🌫 Fog alert';
+    else if(desc.includes('rain')||desc.includes('drizzle')) alert=' 🌧 Rain alert';
+    document.getElementById('weatherIcon').textContent=icon;
+    document.getElementById('weatherTemp').textContent=`${temp}°C${alert}`;
+    document.getElementById('weatherWidget').title=`Namakkal: ${cur.weatherDesc[0].value}, ${temp}°C, Humidity ${cur.humidity}%`;
+  }catch(e){}
 }
 function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
