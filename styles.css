@@ -4,7 +4,40 @@
   --cng:#0D9488; --cng-bg:#CCFBF1; --leaf:#16A34A; --rose:#E11D48;
   --sun:#FFD23F; --bg:#FFF7E8; --card:#FFFFFF; --muted:#6B7280;
   --radius:16px; --shadow:0 4px 20px rgba(16,29,66,.12);
+  --text:#111827; --text-secondary:#374151; --border:#e5e7eb;
 }
+body.dark{
+  --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --text-secondary:#94a3b8;
+  --muted:#94a3b8; --border:#334155; --shadow:0 4px 20px rgba(0,0,0,.3);
+  color:var(--text);
+}
+body.dark header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)}
+body.dark .filters button{background:#ffffff10;color:#e2e8f0}
+body.dark .filters button:hover{background:#ffffff20}
+body.dark .filters button.active{background:var(--sun);color:var(--ink)}
+body.dark #panel{background:var(--card);border-color:#334155}
+body.dark .stn{background:var(--card);border-color:#334155}
+body.dark .stn:hover{background:#263348}
+body.dark #search{background:#0f172a;color:var(--text);border-color:#334155}
+body.dark .search-clear{background:#334155;color:#94a3b8}
+body.dark #serviceFilters button{background:#0f172a;color:var(--text);border-color:#334155}
+body.dark .card{background:var(--card);border-color:#475569}
+body.dark .modal-divider{background:#334155}
+body.dark .modal-selects select{background:#0f172a;color:var(--text);border-color:#334155}
+body.dark #mPrices{background:#0f172a22;border-color:#16a34a33}
+body.dark .btn-gray{background:#334155;color:#e2e8f0}
+body.dark .empty-state{color:var(--muted)}
+body.dark .empty-state-title{color:var(--text)}
+body.dark .leaflet-popup-content-wrapper{background:var(--card)!important;color:var(--text)!important}
+body.dark .leaflet-popup-tip{background:var(--card)!important}
+body.dark footer{background:#0f172a}
+body.dark .bottom-nav{background:#0f172a}
+body.dark .bottom-nav button{background:#ffffff10;color:#e2e8f0}
+body.dark .bottom-nav button.active{background:var(--sun);color:var(--ink)}
+body.dark .sos-nearby{background:#334155}
+body.dark .badge.Available{background:#14532d44;color:#86efac}
+body.dark .badge.Low{background:#92400e44;color:#fcd34d}
+body.dark .badge.Out{background:#7f1d1d44;color:#fca5a5}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui;background:var(--bg);color:#111827}
 
@@ -33,6 +66,9 @@ header{background:linear-gradient(135deg,var(--ink) 0%,#1E3A8A 100%);color:#fff;
 .price-pill.live{background:#16A34A}
 .price-pill.alert{background:var(--rose);cursor:pointer}
 .price-pill.alert:hover{background:#BE123C}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.dark-toggle{width:36px;height:36px;border-radius:50%;border:2px solid #ffffff33;background:#ffffff15;color:#fff;font-size:18px;cursor:pointer;transition:all .2s;display:grid;place-items:center}
+.dark-toggle:hover{background:#ffffff25;transform:scale(1.1)}
 
 /* ===== FILTERS ===== */
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}

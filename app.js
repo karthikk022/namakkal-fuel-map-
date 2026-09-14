@@ -8,6 +8,12 @@ try { priceSubs=JSON.parse(localStorage.getItem('nk_price_sub')||'[]'); }catch(e
 try { availTime=JSON.parse(localStorage.getItem('nk_avail_t')||'{}'); }catch(e){}
 let current=null, sb=null, liveMode=false, searchQ='', svcFilter=new Set();
 
+// --- DARK MODE ---
+let darkMode=localStorage.getItem('nk_dark')==='true';
+function applyDark(){document.body.classList.toggle('dark',darkMode);const t=document.getElementById('darkToggle');if(t)t.textContent=darkMode?'☀️':'🌙';}
+applyDark();
+function toggleDark(){darkMode=!darkMode;localStorage.setItem('nk_dark',darkMode);applyDark();}
+
 function initSupabase(){
   try{
     if(window.SUPABASE_URL && window.SUPABASE_KEY && window.supabase){
@@ -260,6 +266,9 @@ function bindUI(){
     b.onclick=()=>{document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.f;truckMode=false;document.getElementById('truckMode').classList.remove('active');syncBottomNav();render();};
   });
   document.getElementById('truckMode').onclick=(e)=>{truckMode=!truckMode;e.target.classList.toggle('active');syncBottomNav();render();};
+
+  // Dark mode toggle
+  document.getElementById('darkToggle').onclick=toggleDark;
 
   // Modal close
   document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.add('hidden');
