@@ -1,5 +1,5 @@
 let stations=[], prices={petrol_ltr:108.59,diesel_ltr:93.06,cng_kg:89.5,date:'2026-09-14'};
-let filter='all', availOnly=false, truckMode=false, map, markers=[];
+let filter='all', truckMode=false, map, markers=[];
 let availability={}, waitData={}, cngSubs=[], priceSubs=[], availTime={};
 try { availability=JSON.parse(localStorage.getItem('nk_avail')||'{}'); }catch(e){}
 try { waitData=JSON.parse(localStorage.getItem('nk_wait')||'{}'); }catch(e){}
@@ -19,11 +19,25 @@ function initSupabase(){
     if(window.SUPABASE_URL && window.SUPABASE_KEY && window.supabase){
       sb=window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
       liveMode=true;
+      // Monitor connection status
       sb.channel('fuel-live')
         .on('postgres_changes',{event:'*',schema:'public',table:'availability'},()=>pullCloud())
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'wait_reports'},()=>pullCloud())
-        .subscribe();
+        .subscribe((status)=>{
+          const lp=document.getElementById('livePill');
+          if(!lp) return;
+          if(status==='SUBSCRIBED'){lp.textContent='🟢 Live';lp.className='price-pill live';}
+          else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){lp.textContent='🟡 Reconnecting...';lp.className='price-pill alert';}
+        });
       pullCloud();
+      // Periodic connectivity check
+      setInterval(async()=>{
+        if(!sb) return;
+        try{await sb.from('availability').select('id').limit(1);}catch(e){
+          const lp=document.getElementById('livePill');
+          if(lp){lp.textContent='🔴 Offline';lp.className='price-pill alert';}
+        }
+      },30000);
     }
   }catch(e){}
   try{ const lp=document.getElementById('livePill'); if(lp&&liveMode){ lp.textContent='🟢 Live'; lp.className='price-pill live'; } }catch(e){}
@@ -464,6 +478,10 @@ function syncBottomNav(){
   const tb=document.getElementById('truckModeMobile');
   if(tb) tb.classList.toggle('active',truckMode);
 }
+function syncHeaderFilters(){
+  document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f===filter));
+  document.getElementById('truckMode').classList.toggle('active',truckMode);
+}
 function bindBottomNav(){
   // Fuel filters
   document.querySelectorAll('.bottom-nav button[data-f]').forEach(b=>{
@@ -473,7 +491,7 @@ function bindBottomNav(){
       filter=b.dataset.f;
       truckMode=false;
       document.getElementById('truckMode').classList.remove('active');
-      document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f===filter));
+      syncHeaderFilters();
       render();
     };
   });
