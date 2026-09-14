@@ -154,7 +154,10 @@ function render(){
     ${(!truckMode&&s.has_cng)?`<span class="badge ${st.cng}">CNG · ₹${prices.cng_kg}</span>`:''}
     ${s.has_ev?`<span class="badge ${st.ev}">⚡ EV · ${s.ev_kw||''}</span>`:''}
     ${svcLine(s)}<br/>${truckMode?truckBadges(s)+'<br/>':''}
-    <button>View / Update</button>`;
+    <div class="card-actions">
+      <button>View / Update</button>
+      <button class="btn-share" onclick="window.shareStation('${s.id}')">📤</button>
+    </div>`;
     div.querySelector('button').addEventListener('click',()=>openModal(s));
     list.appendChild(div);
   });
@@ -196,6 +199,18 @@ function openModal(s){
 }
 window.openStation=openModal;
 window.openSOS=showSOS;
+window.shareStation=function(id){
+  const s=stations.find(x=>x.id===id);
+  if(!s) return;
+  let msg=`⛽ *${s.name}*\n${s.address} · ${s.brand}\n\n`;
+  if(s.has_petrol) msg+=`Petrol: ₹${prices.petrol_ltr}/L — ${statusFor(s.id,'petrol')}\n`;
+  if(s.has_diesel) msg+=`Diesel: ₹${prices.diesel_ltr}/L — ${statusFor(s.id,'diesel')}\n`;
+  if(s.has_cng) msg+=`CNG: ₹${prices.cng_kg}/kg — ${statusFor(s.id,'cng')}\n`;
+  if(s.has_ev) msg+=`⚡ EV: ${s.ev_kw||''} — ${statusFor(s.id,'ev')}\n`;
+  msg+=`\n📍 https://maps.google.com/?q=${s.lat},${s.lon}\n\n_Namakkal Fuel Map_`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+};
+window.shareCurrent=function(){if(current)window.shareStation(current.id);};
 window.setWait=function(level){
   if(!current) return;
   pushWait(current.id,level).then(()=>{ render(); openModal(current); markers.forEach(m=>{if(m.isPopupOpen()) m.setPopupContent(popupHTML(current));}); });
@@ -274,6 +289,9 @@ function bindUI(){
   document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.add('hidden');
   document.getElementById('mCloseX').onclick=()=>document.getElementById('modal').classList.add('hidden');
   document.getElementById('modal').addEventListener('click',(e)=>{if(e.target.id==='modal') e.target.classList.add('hidden');});
+
+  // Share
+  document.getElementById('mShare').onclick=()=>window.shareCurrent();
 
   // Save
   document.getElementById('mSave').onclick=()=>{
