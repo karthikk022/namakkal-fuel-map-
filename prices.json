@@ -1,11 +1,11 @@
 {
   "city": "Namakkal",
   "state": "Tamil Nadu",
-  "date": "2026-09-12",
-  "petrol_ltr": 108.59,
+  "date": "2026-09-14",
+  "petrol_ltr": 108.7,
   "diesel_ltr": 93.06,
   "cng_kg": 89.5,
   "cng_note": "IRM Energy Namakkal range - rarely changes, confirm at bunk",
   "source": "auto-updater Businessline/NDTV scraped + fallback",
-  "updated_at": "2026-09-12T22:18:10.573371"
+  "updated_at": "2026-09-14T05:21:37.658517"
 }
