@@ -110,34 +110,7 @@ async function fetchWeather(){
   }catch(e){}
 }
 
-// --- NEARBY AMENITIES ---
-const nearbyCache={};
-async function fetchNearby(lat,lon){
-  const key=`${lat.toFixed(4)},${lon.toFixed(4)}`;
-  if(nearbyCache[key]) return nearbyCache[key];
-  const r=1500;
-  const query=`[out:json][timeout:8];(node["amenity"="atm"](around:${r},${lat},${lon});node["amenity"="restaurant"](around:${r},${lat},${lon});node["amenity"="pharmacy"](around:${r},${lat},${lon});node["amenity"="parking"](around:${r},${lat},${lon});node["amenity"="fuel"](around:${r},${lat},${lon}););out body;`;
-  try{
-    // Use GET to avoid CORS issues with POST
-    const url='https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query);
-    const resp=await fetch(url);
-    if(!resp.ok) throw new Error('API '+resp.status);
-    const d=await resp.json();
-    if(!d.elements) throw new Error('No data');
-    const items=d.elements.filter(e=>e.tags).map(e=>{
-      const type=e.tags.amenity||'other';
-      const dist=Math.round(distKm(lat,lon,e.lat,e.lon)*1000);
-      const name=e.tags.name||e.tags['name:en']||e.tags['name:ta']||type;
-      return{type,name,dist};
-    }).filter(i=>i.dist>5&&i.dist<=1500).sort((a,b)=>a.dist-b.dist).slice(0,6);
-    nearbyCache[key]=items;
-    return items;
-  }catch(e){
-    console.log('Nearby error:',e.message);
-    nearbyCache[key]=[];
-    return[];
-  }
-}
+
 function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
 function initMap(){
@@ -258,18 +231,6 @@ function openModal(s){
   document.getElementById('mPrices').innerHTML=html;
   document.getElementById('mWait').innerHTML='';
   document.getElementById('mWait').style.display='none';
-  // Nearby amenities
-  const mna=document.getElementById('mNearby');
-  mna.innerHTML='<div class="nearby-loading">🔍 Searching nearby amenities...</div>';
-  fetchNearby(s.lat,s.lon).then(items=>{
-    if(!items.length){mna.innerHTML='';return;}
-    let h='<div class="nearby-title">📍 Nearby:</div>';
-    items.forEach(a=>{
-      const icon=a.type==='atm'?'🏧':a.type==='restaurant'?'🍽':a.type==='pharmacy'?'💊':a.type==='fuel'?'⛽':a.type==='cafe'?'☕':a.type==='parking'?'🅿️':'🏪';
-      h+=`<div class="nearby-item"><span class="nearby-icon">${icon}</span><span class="nearby-name">${a.name}</span><span class="nearby-dist">${a.dist}m</span></div>`;
-    });
-    mna.innerHTML=h;
-  });
   const mc=document.getElementById('mCngAlert');
   if(s.has_cng){
     const sub=cngSubs.includes(s.id);
