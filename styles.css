@@ -159,6 +159,16 @@ main{display:grid;grid-template-columns:1.7fr 1fr;height:calc(100vh - 110px);gap
 
 #mPrices{background:linear-gradient(180deg,#F0FDF4,#ECFDF5);border:2px dashed #16a34a44;border-radius:14px;padding:10px;margin:8px 0;line-height:1.7;font-weight:500;font-size:13px}
 .trend-note{font-size:12px;color:var(--muted);margin-top:8px}
+.nearby-section{margin:8px 0}
+.nearby-title{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.nearby-loading{font-size:12px;color:var(--muted);padding:4px 0}
+.nearby-item{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;border-bottom:1px solid #101d4210}
+.nearby-item:last-child{border-bottom:none}
+.nearby-icon{font-size:14px;flex-shrink:0}
+.nearby-name{flex:1;color:var(--text)}
+.nearby-dist{color:var(--muted);font-weight:600;flex-shrink:0}
+body.dark .nearby-item{border-color:#334155}
+body.dark #mPrices{background:#0f172222}
 
 /* ===== MODAL BUTTONS ===== */
 .row{display:flex;gap:8px;margin-top:12px}

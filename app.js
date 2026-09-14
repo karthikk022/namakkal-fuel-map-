@@ -95,6 +95,35 @@ async function fetchWeather(){
     document.getElementById('weatherWidget').title=`Namakkal: ${cur.weatherDesc[0].value}, ${temp}°C, Humidity ${cur.humidity}%`;
   }catch(e){}
 }
+
+// --- NEARBY AMENITIES ---
+const nearbyCache={};
+async function fetchNearby(lat,lon){
+  const key=`${lat.toFixed(3)},${lon.toFixed(3)}`;
+  if(nearbyCache[key]) return nearbyCache[key];
+  const r=2000; // 2km radius
+  const query=`[out:json][timeout:8];
+  (
+    node["amenity"="atm"](around:${r},${lat},${lon});
+    node["amenity"="restaurant"](around:${r},${lat},${lon});
+    node["amenity"="pharmacy"](around:${r},${lat},${lon});
+    node["amenity"="fuel"](around:${r},${lat},${lon});
+    node["amenity"="parking"](around:${r},${lat},${lon});
+    node["shop"="supermarket"](around:${r},${lat},${lon});
+  );
+  out body;`;
+  try{
+    const r2=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
+    const d=await r2.json();
+    const items=d.elements.filter(e=>e.tags&&e.tags.name).map(e=>{
+      const type=e.tags.amenity||e.tags.shop||'other';
+      const dist=Math.round(distKm(lat,lon,e.lat,e.lon)*1000);
+      return{type,name:e.tags.name,dist,lat:e.lat,lon:e.lon};
+    }).sort((a,b)=>a.dist-b.dist).slice(0,8);
+    nearbyCache[key]=items;
+    return items;
+  }catch(e){return[];}
+}
 function statusFor(id,f){ return availability[id+':'+f]||'Available'; }
 function waitFor(id){ return waitData[id]||{level:'No rush',time:Date.now(),count:0}; }
 function initMap(){
@@ -215,6 +244,18 @@ function openModal(s){
   document.getElementById('mPrices').innerHTML=html;
   document.getElementById('mWait').innerHTML='';
   document.getElementById('mWait').style.display='none';
+  // Nearby amenities
+  const mna=document.getElementById('mNearby');
+  mna.innerHTML='<div class="nearby-loading">🔍 Loading nearby amenities...</div>';
+  fetchNearby(s.lat,s.lon).then(items=>{
+    if(!items.length){mna.innerHTML='';return;}
+    let h='<div class="nearby-title">📍 Within 2km:</div>';
+    items.forEach(a=>{
+      const icon=a.type==='atm'?'🏧':a.type==='restaurant'?'🍽':a.type==='pharmacy'?'💊':a.type==='parking'?'🅿️':'🏪';
+      h+=`<div class="nearby-item"><span class="nearby-icon">${icon}</span><span class="nearby-name">${a.name}</span><span class="nearby-dist">${a.dist}m</span></div>`;
+    });
+    mna.innerHTML=h;
+  });
   const mc=document.getElementById('mCngAlert');
   if(s.has_cng){
     const sub=cngSubs.includes(s.id);
