@@ -144,7 +144,7 @@ function render(){
   document.getElementById('count').textContent=`(${shown})${truckMode?' 🚛 Trucker':''}`;
   if(!shown){
     list.innerHTML=`<div class="stn" style="text-align:center"><h3>No bunks found</h3><small>Try different search or clear filters.</small><br/><br/><button id="clearF">Clear all filters</button></div>`;
-    document.getElementById('clearF').onclick=()=>{searchQ='';svcFilter.clear();filter='all';truckMode=false;availOnly=false;const se=document.getElementById('search');if(se)se.value='';document.getElementById('searchClear').classList.add('hidden');document.querySelectorAll('[data-svc]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f==='all'));document.getElementById('truckMode').classList.remove('active');document.getElementById('availOnly').classList.remove('active');render();};
+    document.getElementById('clearF').onclick=()=>{searchQ='';svcFilter.clear();filter='all';truckMode=false;const se=document.getElementById('search');if(se)se.value='';document.getElementById('searchClear').classList.add('hidden');document.querySelectorAll('[data-svc]').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.toggle('active',x.dataset.f==='all'));document.getElementById('truckMode').classList.remove('active');render();};
   }
 }
 
@@ -246,7 +246,6 @@ function bindUI(){
     b.onclick=()=>{document.querySelectorAll('.filters button[data-f]').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.f;truckMode=false;document.getElementById('truckMode').classList.remove('active');render();};
   });
   document.getElementById('truckMode').onclick=(e)=>{truckMode=!truckMode;e.target.classList.toggle('active');render();};
-  document.getElementById('availOnly').onclick=(e)=>{availOnly=!availOnly;e.target.classList.toggle('active');render();};
 
   // Modal close
   document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.add('hidden');
