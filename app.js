@@ -115,29 +115,35 @@ const nearbyCache={};
 async function fetchNearby(lat,lon){
   const key=`${lat.toFixed(3)},${lon.toFixed(3)}`;
   if(nearbyCache[key]) return nearbyCache[key];
-  const radius=2000;
-  const query=`[out:json][timeout:10];(node["amenity"="atm"](around:${radius},${lat},${lon});node["amenity"="restaurant"](around:${radius},${lat},${lon});node["amenity"="pharmacy"](around:${radius},${lat},${lon});node["amenity"="parking"](around:${radius},${lat},${lon}););out body;`;
+  const types=['atm','restaurant','pharmacy','fuel','parking','cafe'];
+  const items=[];
   try{
-    const resp=await fetch('https://overpass-api.de/api/interpreter',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/x-www-form-urlencoded',
-        'User-Agent':'NamakkalFuelMap/1.0'
-      },
-      body:'data='+encodeURIComponent(query)
+    for(const t of types){
+      const url=`https://nominatim.openstreetmap.org/search?q=${t}&format=json&limit=3&viewbox=${lon-0.02},${lat+0.02},${lon+0.02},${lat-0.02}&bounded=1`;
+      const r=await fetch(url,{headers:{'Accept':'application/json','User-Agent':'NamakkalFuelMap/1.0'}});
+      if(!r.ok) continue;
+      const d=await r.json();
+      d.forEach(e=>{
+        const dist=Math.round(distKm(lat,lon,parseFloat(e.lat),parseFloat(e.lon))*1000);
+        if(dist<=2000&&dist>0){
+          items.push({type:t,name:e.display_name.split(',')[0],dist});
+        }
+      });
+      // Rate limit: 1 req/sec for Nominatim
+      await new Promise(r=>setTimeout(r,1100));
+    }
+    items.sort((a,b)=>a.dist-b.dist);
+    const unique=[];
+    const seen=new Set();
+    items.forEach(i=>{
+      const k=i.name.toLowerCase();
+      if(!seen.has(k)){seen.add(k);unique.push(i);}
     });
-    if(!resp.ok) throw new Error('API '+resp.status);
-    const d=await resp.json();
-    if(!d.elements) throw new Error('No data');
-    const items=d.elements.filter(e=>e.tags&&e.tags.name).map(e=>{
-      const type=e.tags.amenity||'other';
-      const dist=Math.round(distKm(lat,lon,e.lat,e.lon)*1000);
-      return{type,name:e.tags.name,dist};
-    }).sort((a,b)=>a.dist-b.dist).slice(0,8);
-    nearbyCache[key]=items;
-    return items;
+    const result=unique.slice(0,8);
+    nearbyCache[key]=result;
+    return result;
   }catch(e){
-    console.log('Nearby fetch error:',e.message);
+    console.log('Nearby error:',e.message);
     nearbyCache[key]=[];
     return[];
   }
@@ -265,13 +271,11 @@ function openModal(s){
   // Nearby amenities
   const mna=document.getElementById('mNearby');
   mna.innerHTML='<div class="nearby-loading">🔍 Searching nearby amenities...</div>';
-  const nearbyTimeout=setTimeout(()=>{mna.innerHTML='<div class="nearby-loading">📍 Loading amenities...</div>';},3000);
   fetchNearby(s.lat,s.lon).then(items=>{
-    clearTimeout(nearbyTimeout);
-    if(!items.length){mna.innerHTML='<div class="nearby-loading" style="font-size:11px;color:var(--muted)">📍 No amenities found within 2km</div>';return;}
-    let h='<div class="nearby-title">📍 Within 2km:</div>';
+    if(!items.length){mna.innerHTML='';return;}
+    let h='<div class="nearby-title">📍 Nearby:</div>';
     items.forEach(a=>{
-      const icon=a.type==='atm'?'🏧':a.type==='restaurant'?'🍽':a.type==='pharmacy'?'💊':a.type==='parking'?'🅿️':'🏪';
+      const icon=a.type==='atm'?'🏧':a.type==='restaurant'?'🍽':a.type==='pharmacy'?'💊':a.type==='fuel'?'⛽':a.type==='cafe'?'☕':a.type==='parking'?'🅿️':'🏪';
       h+=`<div class="nearby-item"><span class="nearby-icon">${icon}</span><span class="nearby-name">${a.name}</span><span class="nearby-dist">${a.dist}m</span></div>`;
     });
     mna.innerHTML=h;
